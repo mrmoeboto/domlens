@@ -145,6 +145,18 @@ describe('parseFontFaceBlocks', () => {
         });
         expect(rules[1]).toMatchObject({family: 'Nested', weight: 'normal', style: 'normal'});
     });
+
+    it('should not split src values on semicolons inside data: urls', () => {
+        const css =
+            '@font-face { font-family: Karla; src: url("data:font/woff2;base64,AAAA") format("woff2"); ' +
+            'font-weight: 700; }\n' +
+            '@font-face { font-family: Bare; src: url(data:font/woff2;base64,BBBB); }';
+        const rules = parseFontFaceBlocks(css, 'https://example.com/');
+        expect(rules).toHaveLength(2);
+        expect(rules[0].src).toBe('url("data:font/woff2;base64,AAAA") format("woff2")');
+        expect(rules[0].weight).toBe('700');
+        expect(rules[1].src).toBe('url(data:font/woff2;base64,BBBB)');
+    });
 });
 
 describe('collectFontFaceRules', () => {

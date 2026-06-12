@@ -2,14 +2,14 @@
   "engine": "svg",
   "browser": "firefox",
   "summary": {
-    "total": 94,
-    "captured": 94,
-    "pct90": 95.7
+    "total": 99,
+    "captured": 99,
+    "pct90": 99
   },
   "tests": [
     {
       "path": "acid2.html",
-      "ssim": 0.9620137943957456
+      "ssim": 0.9640931284515958
     },
     {
       "path": "animation.html",
@@ -97,15 +97,15 @@
     },
     {
       "path": "dynamicstyle.html",
-      "ssim": 0.9868337786907029
+      "ssim": 1
     },
     {
       "path": "forms.html",
-      "ssim": 0.6717962459399257
+      "ssim": 0.9212240873655233
     },
     {
       "path": "iframe.html",
-      "ssim": 0.671543830962472
+      "ssim": 0.9869530630098587
     },
     {
       "path": "images/base.html",
@@ -153,7 +153,7 @@
     },
     {
       "path": "images/video.html",
-      "ssim": 0.8958650907283406
+      "ssim": 0.970756569527671
     },
     {
       "path": "list/decimal-leading-zero.html",
@@ -213,7 +213,7 @@
     },
     {
       "path": "overflow/overflow.html",
-      "ssim": 1
+      "ssim": 0.9996609318057165
     },
     {
       "path": "pseudo-content.html",
@@ -221,6 +221,18 @@
     },
     {
       "path": "pseudoelements.html",
+      "ssim": 1
+    },
+    {
+      "path": "shadow/nested.html",
+      "ssim": 1
+    },
+    {
+      "path": "shadow/simple.html",
+      "ssim": 0.9990855803726175
+    },
+    {
+      "path": "shadow/slots.html",
       "ssim": 1
     },
     {
@@ -269,7 +281,7 @@
     },
     {
       "path": "text/textarea.html",
-      "ssim": 0.9497405886217689
+      "ssim": 0.9491696486977976
     },
     {
       "path": "text/underline-lineheight.html",
@@ -277,6 +289,14 @@
     },
     {
       "path": "text/underline.html",
+      "ssim": 1
+    },
+    {
+      "path": "text/webfont-unicode-range.html",
+      "ssim": 1
+    },
+    {
+      "path": "text/webfont.html",
       "ssim": 1
     },
     {

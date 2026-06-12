@@ -97,7 +97,9 @@ export class SvgEngine implements CaptureEngine {
             width: outputWidth,
             height: outputHeight,
             scale: output.scale,
-            allowTaint: context.options.resources.allowTaint
+            allowTaint: context.options.resources.allowTaint,
+            // WebKit font decode warmup (webkit-quirks.ts); ignored on other engines.
+            fontCss: fontCss || undefined
         });
 
         return {kind: 'svg', markup, width: outputWidth, height: outputHeight, canvas};

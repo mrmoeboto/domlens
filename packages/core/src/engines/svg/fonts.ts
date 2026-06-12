@@ -222,6 +222,38 @@ const resolveUrl = (url: string, base: string): string => {
 const stripCssComments = (css: string): string => css.replace(/\/\*[\s\S]*?\*\//g, '');
 
 /**
+ * Splits a declaration block on top-level semicolons only: a `;` inside url(...) or a
+ * quoted string is part of the value (data: urls contain semicolons — `data:font/woff2;
+ * base64,...`).
+ */
+const splitDeclarations = (block: string): string[] => {
+    const declarations: string[] = [];
+    let depth = 0;
+    let quote: string | null = null;
+    let current = '';
+    for (const ch of block) {
+        if (quote) {
+            if (ch === quote) {
+                quote = null;
+            }
+        } else if (ch === '"' || ch === "'") {
+            quote = ch;
+        } else if (ch === '(') {
+            depth++;
+        } else if (ch === ')') {
+            depth = Math.max(0, depth - 1);
+        } else if (ch === ';' && depth === 0) {
+            declarations.push(current);
+            current = '';
+            continue;
+        }
+        current += ch;
+    }
+    declarations.push(current);
+    return declarations;
+};
+
+/**
  * Tolerant text-level @font-face parser, used for stylesheets whose CSSOM is blocked
  * (cross-origin without CORS) after their text has been re-fetched. Descriptor parsing is
  * line-grammar level — enough for real-world @font-face blocks, which contain no nested
@@ -232,7 +264,7 @@ export const parseFontFaceBlocks = (cssText: string, base: string): FontFaceRule
     const text = stripCssComments(cssText);
     for (const match of text.matchAll(/@font-face\s*\{([^}]*)\}/gi)) {
         const descriptors = new Map<string, string>();
-        for (const declaration of match[1].split(';')) {
+        for (const declaration of splitDeclarations(match[1])) {
             const colon = declaration.indexOf(':');
             if (colon === -1) {
                 continue;

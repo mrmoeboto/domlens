@@ -1,4 +1,5 @@
 import {isSecurityError, TaintError} from '../taint-error';
+import {settleSvgImage, warmupEmbeddedFonts} from './webkit-quirks';
 
 /**
  * Loads serialized `<svg>` markup (or an svg DOM node) into an HTMLImageElement via a
@@ -23,6 +24,12 @@ export interface RasterizeConfig {
     scale: number;
     /** Skip the post-draw taint probe: the caller explicitly accepts tainted output. */
     allowTaint?: boolean;
+    /**
+     * The @font-face CSS embedded in the markup (fonts.ts). On WebKit the faces are
+     * pre-loaded into the host document before rasterization so the foreignObject text
+     * does not rasterize with fallback fonts (webkit-quirks.ts); unused elsewhere.
+     */
+    fontCss?: string;
 }
 
 /**
@@ -36,32 +43,42 @@ export interface RasterizeConfig {
  */
 export const rasterizeSvg = async (markup: string, config: RasterizeConfig): Promise<HTMLCanvasElement> => {
     const {width, height, scale} = config;
-    const img = await loadSerializedSVG(markup);
 
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.max(1, Math.floor(width * scale));
-    canvas.height = Math.max(1, Math.floor(height * scale));
-    canvas.style.width = `${width}px`;
-    canvas.style.height = `${height}px`;
+    // WebKit-only (no-ops elsewhere, see webkit-quirks.ts): pre-load the embedded fonts in
+    // the host document, and settle the loaded svg image (decode + warmup draw) before the
+    // readback draw below.
+    const cleanupFonts = await warmupEmbeddedFonts(config.fontCss);
+    try {
+        const img = await loadSerializedSVG(markup);
+        await settleSvgImage(img);
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-        throw new Error('Unable to get 2d context for svg rasterization');
-    }
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.floor(width * scale));
+        canvas.height = Math.max(1, Math.floor(height * scale));
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
 
-    ctx.scale(scale, scale);
-    ctx.drawImage(img, 0, 0, width, height);
-
-    if (!config.allowTaint) {
-        try {
-            ctx.getImageData(0, 0, 1, 1);
-        } catch (e) {
-            if (!isSecurityError(e)) {
-                throw e;
-            }
-            throw new TaintError(`svg rasterization produced a tainted canvas: ${e}`);
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            throw new Error('Unable to get 2d context for svg rasterization');
         }
-    }
 
-    return canvas;
+        ctx.scale(scale, scale);
+        ctx.drawImage(img, 0, 0, width, height);
+
+        if (!config.allowTaint) {
+            try {
+                ctx.getImageData(0, 0, 1, 1);
+            } catch (e) {
+                if (!isSecurityError(e)) {
+                    throw e;
+                }
+                throw new TaintError(`svg rasterization produced a tainted canvas: ${e}`);
+            }
+        }
+
+        return canvas;
+    } finally {
+        cleanupFonts();
+    }
 };

@@ -1,3 +1,5 @@
+import {foreignObjectQuirkStyle} from './webkit-quirks';
+
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 /**
@@ -92,6 +94,14 @@ export const serializeToSvg = (node: Node, config: SerializeConfig): string => {
     foreignObject.setAttributeNS(null, 'width', (left + width).toString());
     foreignObject.setAttributeNS(null, 'height', (top + height).toString());
     foreignObject.setAttributeNS(null, 'externalResourcesRequired', 'true');
+
+    // WebKit-only (empty string elsewhere): pin -webkit-text-size-adjust on the wrapper so
+    // WebKit's text autosizing does not inflate font sizes inside the rendered image; the
+    // property is inherited by the whole foreignObject subtree.
+    const quirkStyle = foreignObjectQuirkStyle();
+    if (quirkStyle) {
+        foreignObject.setAttributeNS(null, 'style', quirkStyle);
+    }
     svg.appendChild(foreignObject);
 
     // importNode (not appendChild) so the clone tree stays attached to its iframe; layout
