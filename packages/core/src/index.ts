@@ -6,12 +6,18 @@ import {CaptureOptions, resolveOptions} from './options';
 import {CaptureResult} from './capture-result';
 import {CaptureStages, EngineRegistry, executeCapture} from './engines/select';
 import {CanvasEngine} from './engines/canvas/engine';
+import {SvgEngine} from './engines/svg/engine';
 import {CaptureEngine, ClonedTree} from './engines/types';
 
 export {CaptureContext} from './capture-context';
 export {CaptureResult} from './capture-result';
 export type {ImageFormat} from './capture-result';
 export {CanvasEngine} from './engines/canvas/engine';
+export {SvgEngine} from './engines/svg/engine';
+export {serializeToSvg} from './engines/svg/serializer';
+export type {SerializeConfig} from './engines/svg/serializer';
+export {loadSerializedSVG, rasterizeSvg} from './engines/svg/rasterize';
+export type {RasterizeConfig} from './engines/svg/rasterize';
 export {selectEngine, executeCapture} from './engines/select';
 export type {EngineFactory, EngineRegistry, CaptureStages} from './engines/select';
 export type {
@@ -51,8 +57,10 @@ if (typeof window !== 'undefined') {
 }
 
 const engines: EngineRegistry = {
-    canvas: () => new CanvasEngine()
-    // svg: the foreignObject engine arrives in Phase 3; 'auto' resolves to canvas until then.
+    canvas: () => new CanvasEngine(),
+    // Available via `engine: 'svg'`; 'auto' keeps resolving to canvas until the svg engine
+    // beats the canvas engine's fidelity scorecard (see engines/select.ts).
+    svg: () => new SvgEngine()
 };
 
 /**

@@ -20,3 +20,5 @@ tests/reftests.js
 .rpt2_cache
 /test-results/
 /playwright-report/
+# Scorecard JSON reports are committed; any debug images written next to them are not.
+tests/playwright/reports/*.png

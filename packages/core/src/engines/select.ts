@@ -3,7 +3,7 @@ import type {CaptureEngine, ClonedTree, EngineOutput} from './types';
 
 export type EngineFactory = () => CaptureEngine;
 
-/** Available engine factories. `svg` is absent until the foreignObject engine lands (Phase 3). */
+/** Available engine factories. */
 export interface EngineRegistry {
     canvas: EngineFactory;
     svg?: EngineFactory;
@@ -11,15 +11,14 @@ export interface EngineRegistry {
 
 /**
  * Engine selection policy:
- * - explicit `engine: 'canvas' | 'svg'` uses that engine (error when unavailable),
- * - `engine: 'auto'` prefers the svg engine when registered and supported, otherwise canvas.
+ * - explicit `engine: 'canvas' | 'svg'` uses that engine (error when unavailable, no support
+ *   pre-check — render failures of a non-canvas engine still auto-fall back to canvas),
+ * - `engine: 'auto'` resolves to the canvas engine for now. The flip to svg-first (with
+ *   support check + fallback) is gated on the svg engine clearing the canvas engine's
+ *   fidelity scorecard (Phase 3 exit criteria).
  */
 export const selectEngine = async (context: CaptureContext, registry: EngineRegistry): Promise<CaptureEngine> => {
     const requested = context.options.engine;
-
-    if (requested === 'canvas') {
-        return registry.canvas();
-    }
 
     if (requested === 'svg') {
         if (!registry.svg) {
@@ -28,14 +27,8 @@ export const selectEngine = async (context: CaptureContext, registry: EngineRegi
         return registry.svg();
     }
 
-    // 'auto'
-    if (registry.svg) {
-        const engine = registry.svg();
-        const support = await engine.supports(context);
-        if (support.ok) {
-            return engine;
-        }
-        context.logger.debug(`svg engine unsupported (${support.reason ?? 'unknown reason'}); using canvas engine`);
+    if (requested === 'auto' && registry.svg) {
+        context.logger.debug(`auto engine: svg engine registered but not yet the default; using canvas engine`);
     }
 
     return registry.canvas();

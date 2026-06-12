@@ -1,0 +1,387 @@
+{
+  "engine": "svg",
+  "browser": "firefox",
+  "summary": {
+    "total": 94,
+    "captured": 94,
+    "pct90": 79.8
+  },
+  "tests": [
+    {
+      "path": "acid2.html",
+      "ssim": 0.9678841600607094
+    },
+    {
+      "path": "animation.html",
+      "ssim": 1
+    },
+    {
+      "path": "background/box-shadow.html",
+      "ssim": 1
+    },
+    {
+      "path": "background/clip.html",
+      "ssim": 0.7734914979262194
+    },
+    {
+      "path": "background/encoded.html",
+      "ssim": 0.9982831700741972
+    },
+    {
+      "path": "background/linear-gradient.html",
+      "ssim": 0.9999970894989698
+    },
+    {
+      "path": "background/linear-gradient2.html",
+      "ssim": 1
+    },
+    {
+      "path": "background/multi.html",
+      "ssim": 0.8115310630591116
+    },
+    {
+      "path": "background/origin.html",
+      "ssim": 0.6883368989018591
+    },
+    {
+      "path": "background/position.html",
+      "ssim": 0.7265623089378034
+    },
+    {
+      "path": "background/radial-gradient.html",
+      "ssim": 1
+    },
+    {
+      "path": "background/radial-gradient2.html",
+      "ssim": 1
+    },
+    {
+      "path": "background/repeat.html",
+      "ssim": 0.7627882529757062
+    },
+    {
+      "path": "background/size.html",
+      "ssim": 0.4568771279790491
+    },
+    {
+      "path": "border/dashed.html",
+      "ssim": 1
+    },
+    {
+      "path": "border/dotted.html",
+      "ssim": 1
+    },
+    {
+      "path": "border/double.html",
+      "ssim": 1
+    },
+    {
+      "path": "border/inset.html",
+      "ssim": 1
+    },
+    {
+      "path": "border/radius.html",
+      "ssim": 0.7627012332835944
+    },
+    {
+      "path": "border/solid.html",
+      "ssim": 1
+    },
+    {
+      "path": "clip.html",
+      "ssim": 1
+    },
+    {
+      "path": "crossorigin-iframe.html",
+      "ssim": 0.5114245483079009
+    },
+    {
+      "path": "dynamicstyle.html",
+      "ssim": 0.9868337786907029
+    },
+    {
+      "path": "forms.html",
+      "ssim": 0.818936555995808
+    },
+    {
+      "path": "iframe.html",
+      "ssim": 0.671543830962472
+    },
+    {
+      "path": "images/base.html",
+      "ssim": 0.7993154548194036
+    },
+    {
+      "path": "images/canvas.html",
+      "ssim": 1
+    },
+    {
+      "path": "images/cross-origin.html",
+      "ssim": 0.7249819998330707
+    },
+    {
+      "path": "images/doctype.html",
+      "ssim": 0.9713077083404454
+    },
+    {
+      "path": "images/empty.html",
+      "ssim": 0.9989529810437775
+    },
+    {
+      "path": "images/images.html",
+      "ssim": 0.4528020742107117
+    },
+    {
+      "path": "images/svg/base64.html",
+      "ssim": 1
+    },
+    {
+      "path": "images/svg/external.html",
+      "ssim": 0.7506125568769325
+    },
+    {
+      "path": "images/svg/inline.html",
+      "ssim": 1
+    },
+    {
+      "path": "images/svg/native_only.html",
+      "ssim": 0.826045767721257
+    },
+    {
+      "path": "images/svg/node.html",
+      "ssim": 0.9999999288451136
+    },
+    {
+      "path": "images/video.html",
+      "ssim": 0.7876035778065963
+    },
+    {
+      "path": "list/decimal-leading-zero.html",
+      "ssim": 1
+    },
+    {
+      "path": "list/decimal.html",
+      "ssim": 1
+    },
+    {
+      "path": "list/liststyle.html",
+      "ssim": 0.9644267645443061
+    },
+    {
+      "path": "list/lower-alpha.html",
+      "ssim": 1
+    },
+    {
+      "path": "list/upper-roman.html",
+      "ssim": 1
+    },
+    {
+      "path": "options/crop-2.html",
+      "ssim": 0.8842958460011265
+    },
+    {
+      "path": "options/crop.html",
+      "ssim": 1
+    },
+    {
+      "path": "options/element.html",
+      "ssim": 1
+    },
+    {
+      "path": "options/ignore-2.html",
+      "ssim": 1
+    },
+    {
+      "path": "options/ignore.html",
+      "ssim": 0.9677879530256257
+    },
+    {
+      "path": "options/onclone.html",
+      "ssim": 1
+    },
+    {
+      "path": "options/scroll-2.html",
+      "ssim": 1
+    },
+    {
+      "path": "options/scroll.html",
+      "ssim": 1
+    },
+    {
+      "path": "overflow/overflow-transform.html",
+      "ssim": 1
+    },
+    {
+      "path": "overflow/overflow.html",
+      "ssim": 0.9787080612347434
+    },
+    {
+      "path": "pseudo-content.html",
+      "ssim": 0.979430180145878
+    },
+    {
+      "path": "pseudoelements.html",
+      "ssim": 0.9245213762515396
+    },
+    {
+      "path": "text/child-textnodes.html",
+      "ssim": 1
+    },
+    {
+      "path": "text/lang/chinese.html",
+      "ssim": 1
+    },
+    {
+      "path": "text/lang/persian.html",
+      "ssim": 1
+    },
+    {
+      "path": "text/lang/thai.html",
+      "ssim": 1
+    },
+    {
+      "path": "text/line-break.html",
+      "ssim": 1
+    },
+    {
+      "path": "text/linethrough.html",
+      "ssim": 1
+    },
+    {
+      "path": "text/multiple.html",
+      "ssim": 1
+    },
+    {
+      "path": "text/overflow-wrap.html",
+      "ssim": 1
+    },
+    {
+      "path": "text/shadow.html",
+      "ssim": 1
+    },
+    {
+      "path": "text/stroke.html",
+      "ssim": 1
+    },
+    {
+      "path": "text/text.html",
+      "ssim": 1
+    },
+    {
+      "path": "text/textarea.html",
+      "ssim": 0.9497405886217689
+    },
+    {
+      "path": "text/underline-lineheight.html",
+      "ssim": 1
+    },
+    {
+      "path": "text/underline.html",
+      "ssim": 1
+    },
+    {
+      "path": "text/word-break.html",
+      "ssim": 1
+    },
+    {
+      "path": "transform/nested.html",
+      "ssim": 1
+    },
+    {
+      "path": "transform/rotate.html",
+      "ssim": 0.8343653084071094
+    },
+    {
+      "path": "transform/translate.html",
+      "ssim": 1
+    },
+    {
+      "path": "visibility.html",
+      "ssim": 1
+    },
+    {
+      "path": "webcomponents/webcomponents.html",
+      "ssim": 0.9736267554184389
+    },
+    {
+      "path": "zindex/z-index1.html",
+      "ssim": 1
+    },
+    {
+      "path": "zindex/z-index10.html",
+      "ssim": 1
+    },
+    {
+      "path": "zindex/z-index11.html",
+      "ssim": 1
+    },
+    {
+      "path": "zindex/z-index12.html",
+      "ssim": 1
+    },
+    {
+      "path": "zindex/z-index13.html",
+      "ssim": 1
+    },
+    {
+      "path": "zindex/z-index14.html",
+      "ssim": 0.9924051868710166
+    },
+    {
+      "path": "zindex/z-index15.html",
+      "ssim": 1
+    },
+    {
+      "path": "zindex/z-index16.html",
+      "ssim": 0.8464790933133655
+    },
+    {
+      "path": "zindex/z-index17.html",
+      "ssim": 1
+    },
+    {
+      "path": "zindex/z-index18.html",
+      "ssim": 1
+    },
+    {
+      "path": "zindex/z-index19.html",
+      "ssim": 1
+    },
+    {
+      "path": "zindex/z-index2.html",
+      "ssim": 1
+    },
+    {
+      "path": "zindex/z-index20.html",
+      "ssim": 1
+    },
+    {
+      "path": "zindex/z-index3.html",
+      "ssim": 1
+    },
+    {
+      "path": "zindex/z-index4.html",
+      "ssim": 1
+    },
+    {
+      "path": "zindex/z-index5.html",
+      "ssim": 1
+    },
+    {
+      "path": "zindex/z-index6.html",
+      "ssim": 1
+    },
+    {
+      "path": "zindex/z-index7.html",
+      "ssim": 1
+    },
+    {
+      "path": "zindex/z-index8.html",
+      "ssim": 1
+    },
+    {
+      "path": "zindex/z-index9.html",
+      "ssim": 1
+    }
+  ]
+}

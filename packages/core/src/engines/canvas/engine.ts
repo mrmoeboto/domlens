@@ -1,5 +1,5 @@
 import {parseBounds, parseDocumentSize} from './css/layout/bounds';
-import {COLORS, isTransparent, parseColor} from './css/types/color';
+import {Color, COLORS, isTransparent, parseColor} from './css/types/color';
 import {isBodyElement, isHTMLElement, parseTree} from './dom/node-parser';
 import {CanvasRenderer, RenderConfigurations} from './render/canvas/canvas-renderer';
 import {Context} from '../../context';
@@ -68,7 +68,12 @@ export class CanvasEngine implements CaptureEngine {
 }
 
 // http://www.w3.org/TR/css3-background/#special-backgrounds
-const parseBackgroundColor = (context: Context, element: HTMLElement, backgroundColorOverride?: string | null) => {
+// Shared with the svg engine (same html/body background special-casing semantics).
+export const parseBackgroundColor = (
+    context: Context,
+    element: HTMLElement,
+    backgroundColorOverride?: string | null
+): Color => {
     const ownerDocument = element.ownerDocument;
     const documentBackgroundColor = ownerDocument.documentElement
         ? parseColor(context, getComputedStyle(ownerDocument.documentElement).backgroundColor as string)

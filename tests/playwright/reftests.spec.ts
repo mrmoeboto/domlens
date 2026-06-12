@@ -12,18 +12,32 @@
  *  5. compares the canvas PNG against a committed per-browser baseline with pixelmatch.
  *
  * Run with UPDATE_BASELINES=1 to (re)generate baselines instead of comparing.
+ *
+ * SSIM scorecard mode (ENGINE=svg or ENGINE=canvas): instead of the baseline comparison,
+ * a single sequential test injects the core UMD bundle (packages/core/dist/domlens.js),
+ * captures every non-skipped reftest page with `domlens.capture(target, {engine, ...})`
+ * and scores the result against a NATIVE Playwright screenshot of the live page (same
+ * element bounds, scale 1 = the configured deviceScaleFactor) using SSIM. Results land in
+ * tests/playwright/reports/{engine}-scorecard-{browser}.json. A capture that throws (or
+ * falls back to another engine) scores 0 with the error recorded. The canvas scorecard is
+ * the absolute-fidelity bar the svg engine must beat before 'auto' flips to svg-first.
  */
 import {test, expect} from '@playwright/test';
+import type {Page} from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
 import {PNG} from 'pngjs';
 import pixelmatch from 'pixelmatch';
+import {ssim} from 'ssim.js';
 import {SKIPPED_REFTESTS, BrowserName} from './skip';
 
 const REFTESTS_DIR = path.resolve(__dirname, '../reftests');
 const BASELINES_DIR = path.resolve(__dirname, 'baselines');
+const REPORTS_DIR = path.resolve(__dirname, 'reports');
+const CORE_BUNDLE = path.resolve(__dirname, '../../packages/core/dist/domlens.js');
 const PROXY_URL = 'http://localhost:8081/proxy';
 const UPDATE_BASELINES = process.env.UPDATE_BASELINES === '1';
+const SCORECARD_ENGINE = process.env.ENGINE === 'svg' || process.env.ENGINE === 'canvas' ? process.env.ENGINE : null;
 
 // Pixelmatch per-pixel color threshold (0..1); tolerant of minor antialiasing changes.
 const PIXELMATCH_THRESHOLD = 0.1;
@@ -90,7 +104,147 @@ const pngFromDataURL = (dataUrl: string): PNG => {
     return PNG.sync.read(Buffer.from(dataUrl.slice(prefix.length), 'base64'));
 };
 
-for (const relPath of reftests) {
+interface ScorecardEntry {
+    path: string;
+    /** Mean SSIM vs the native screenshot in [0, 1]; 0 when the capture failed. */
+    ssim: number;
+    error?: string;
+}
+
+interface Scorecard {
+    engine: string;
+    browser: string;
+    summary: {
+        /** Non-skipped reftest pages scored. */
+        total: number;
+        /** Pages where the engine produced an image (no error). */
+        captured: number;
+        /** Percent of non-skipped pages with ssim >= 0.90. */
+        pct90: number;
+    };
+    tests: ScorecardEntry[];
+}
+
+const cropPng = (src: PNG, x: number, y: number, width: number, height: number): PNG => {
+    const out = new PNG({width, height});
+    PNG.bitblt(src, out, x, y, width, height, 0, 0);
+    return out;
+};
+
+const asImageData = (png: PNG): {data: Uint8ClampedArray; width: number; height: number} => ({
+    data: new Uint8ClampedArray(png.data),
+    width: png.width,
+    height: png.height
+});
+
+/**
+ * Captures one reftest page with the requested engine and returns its SSIM score against
+ * a native screenshot of the live page, cropped to the captured element's bounds.
+ */
+const scorePage = async (page: Page, urlPath: string, engine: string): Promise<number> => {
+    await page.goto(`${urlPath}?selenium&run=false&reftest`);
+    await page.addScriptTag({path: CORE_BUNDLE});
+    await page.evaluate(() => document.fonts.ready.then(() => undefined));
+
+    // Document coordinates of the capture target (what the engine is asked to render).
+    const bounds = await page.evaluate(() => {
+        /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+        const element: HTMLElement = (window as any).forceElement || document.documentElement;
+        const rect = element.getBoundingClientRect();
+        return {x: rect.left + window.pageXOffset, y: rect.top + window.pageYOffset};
+    });
+
+    // The browser's own rendering is the fidelity reference. deviceScaleFactor is 1 and the
+    // capture runs with output.scale 1, so both images are at 1 device pixel per CSS pixel.
+    const native = PNG.sync.read(await page.screenshot({fullPage: true, animations: 'disabled'}));
+
+    const dataUrl = await page.evaluate(
+        async ({engine, proxy}) => {
+            /* eslint-disable @typescript-eslint/no-explicit-any */
+            const win = window as any;
+            const element: HTMLElement = win.forceElement || document.documentElement;
+            const result = await win.domlens.capture(element, {
+                engine,
+                output: {scale: 1, backgroundColor: '#ffffff'},
+                resources: {proxy}
+            });
+            /* eslint-enable @typescript-eslint/no-explicit-any */
+            if (result.kind !== engine) {
+                throw new Error(`engine fell back: requested ${engine}, produced ${result.kind} output`);
+            }
+            return result.toPng();
+        },
+        {engine, proxy: PROXY_URL}
+    );
+    const actual = pngFromDataURL(dataUrl);
+
+    // Crop both images to their common region (engine output and native screenshot can
+    // disagree by a ceil()'ed pixel or where the element extends past the document edge).
+    const x = Math.max(0, Math.round(bounds.x));
+    const y = Math.max(0, Math.round(bounds.y));
+    const width = Math.min(actual.width, native.width - x);
+    const height = Math.min(actual.height, native.height - y);
+    if (width <= 0 || height <= 0) {
+        throw new Error(
+            `capture (${actual.width}x${actual.height}) does not overlap the native screenshot ` +
+                `(${native.width}x${native.height} at ${x},${y})`
+        );
+    }
+
+    const {mssim} = ssim(
+        asImageData(cropPng(actual, 0, 0, width, height)),
+        asImageData(cropPng(native, x, y, width, height))
+    );
+    return mssim;
+};
+
+if (SCORECARD_ENGINE) {
+    const engine = SCORECARD_ENGINE;
+
+    test(`ssim scorecard (${engine} engine)`, async ({page, browserName}) => {
+        // Sequential over ~95 pages; well above the default per-test timeout.
+        test.setTimeout(30 * 60_000);
+
+        const entries: ScorecardEntry[] = [];
+        for (const relPath of reftests) {
+            const urlPath = `/tests/reftests/${relPath}`;
+            if (isIgnored(urlPath, browserName) || skipReason(relPath, browserName) !== null) {
+                continue;
+            }
+
+            const entry: ScorecardEntry = {path: relPath, ssim: 0};
+            try {
+                entry.ssim = await scorePage(page, urlPath, engine);
+            } catch (e) {
+                entry.error = e instanceof Error ? e.message : String(e);
+            }
+            entries.push(entry);
+            // eslint-disable-next-line no-console
+            console.log(`[scorecard:${engine}:${browserName}] ${relPath} ${entry.error ?? entry.ssim.toFixed(4)}`);
+        }
+
+        const captured = entries.filter((entry) => !entry.error).length;
+        const above90 = entries.filter((entry) => entry.ssim >= 0.9).length;
+        const scorecard: Scorecard = {
+            engine,
+            browser: browserName,
+            summary: {
+                total: entries.length,
+                captured,
+                pct90: Math.round((above90 / entries.length) * 1000) / 10
+            },
+            tests: entries
+        };
+
+        fs.mkdirSync(REPORTS_DIR, {recursive: true});
+        const reportPath = path.join(REPORTS_DIR, `${engine}-scorecard-${browserName}.json`);
+        fs.writeFileSync(reportPath, JSON.stringify(scorecard, null, 2) + '\n');
+
+        expect(entries.length).toBeGreaterThan(0);
+    });
+}
+
+for (const relPath of SCORECARD_ENGINE ? [] : reftests) {
     const urlPath = `/tests/reftests/${relPath}`;
 
     test(relPath, async ({page, browserName}, testInfo) => {

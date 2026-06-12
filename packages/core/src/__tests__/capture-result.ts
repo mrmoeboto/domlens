@@ -4,6 +4,13 @@ import {CaptureContext} from '../capture-context';
 import {CaptureOptions, resolveOptions} from '../options';
 import {CaptureResult} from '../capture-result';
 import {EngineOutput} from '../engines/types';
+import {rasterizeSvg} from '../engines/svg/rasterize';
+
+vi.mock('../engines/svg/rasterize', () => ({
+    rasterizeSvg: vi.fn().mockImplementation(async () => ({
+        toDataURL: (type: string) => `data:${type};base64,SVGRASTER`
+    }))
+}));
 
 const makeContext = (options: CaptureOptions = {}): CaptureContext =>
     new CaptureContext(resolveOptions({debug: false, ...options}), new Bounds(0, 0, 0, 0));
@@ -44,7 +51,7 @@ describe('CaptureResult', () => {
 
     it('should throw from toSvg for canvas output', () => {
         const {result} = makeResult();
-        expect(() => result.toSvg()).toThrow('svg engine not yet available');
+        expect(() => result.toSvg()).toThrow('toSvg() is not available for canvas output');
     });
 
     it('should encode lazily', () => {
@@ -102,5 +109,17 @@ describe('CaptureResult', () => {
         const result = new CaptureResult(output, makeContext());
         expect(result.toSvg()).toBe('<svg/>');
         expect(() => result.toCanvas()).toThrow('not available for svg output');
+    });
+
+    it('should rasterize svg output once at the configured scale for raster exports', async () => {
+        const output: EngineOutput = {kind: 'svg', markup: '<svg/>', width: 10, height: 20};
+        const result = new CaptureResult(output, makeContext({output: {scale: 2}}));
+
+        expect(await result.toPng()).toBe('data:image/png;base64,SVGRASTER');
+        expect(rasterizeSvg).toHaveBeenCalledWith('<svg/>', {width: 10, height: 20, scale: 2});
+
+        await result.toJpeg();
+        // The rasterization is cached across formats.
+        expect(rasterizeSvg).toHaveBeenCalledTimes(1);
     });
 });

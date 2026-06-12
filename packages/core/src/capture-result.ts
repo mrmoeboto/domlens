@@ -1,5 +1,6 @@
 import {CaptureContext} from './capture-context';
 import {EngineOutput} from './engines/types';
+import {rasterizeSvg} from './engines/svg/rasterize';
 
 export type ImageFormat = 'png' | 'jpeg' | 'webp';
 
@@ -17,6 +18,7 @@ const MIME_TYPES: Record<ImageFormat, string> = {
 export class CaptureResult {
     private readonly dataUrls = new Map<string, Promise<string>>();
     private readonly blobs = new Map<string, Promise<Blob>>();
+    private rasterized?: Promise<HTMLCanvasElement>;
 
     constructor(
         private readonly output: EngineOutput,
@@ -38,26 +40,45 @@ export class CaptureResult {
 
     /**
      * Returns the rendered canvas synchronously. Only available for canvas engine output;
-     * svg output requires asynchronous rasterization (arrives with the svg engine).
+     * svg output requires asynchronous rasterization — use toPng()/toBlob() instead.
      */
     toCanvas(): HTMLCanvasElement {
         if (this.output.kind !== 'canvas') {
-            throw new Error(`toCanvas() is not available for ${this.output.kind} output yet`);
+            throw new Error(
+                `toCanvas() is synchronous and not available for ${this.output.kind} output; use toPng()/toBlob()`
+            );
         }
 
         return this.output.canvas;
     }
 
     /**
-     * Returns the SVG markup of the capture. Canvas engine output cannot be converted to
-     * SVG; this throws until the svg engine is available (and selected).
+     * Returns the SVG markup of the capture. Only available for svg engine output; the
+     * canvas engine paints pixels and cannot produce svg markup.
      */
     toSvg(): string {
         if (this.output.kind !== 'svg') {
-            throw new Error(`svg engine not yet available`);
+            throw new Error(`toSvg() is not available for ${this.output.kind} output; use the svg engine`);
         }
 
         return this.output.markup;
+    }
+
+    /**
+     * Resolves the output to a canvas: canvas output directly, svg output through a single
+     * cached rasterization (markup → Image → canvas) at the configured output scale.
+     */
+    private resolveCanvas(): Promise<HTMLCanvasElement> {
+        if (this.output.kind === 'canvas') {
+            return Promise.resolve(this.output.canvas);
+        }
+
+        if (!this.rasterized) {
+            const {markup, width, height} = this.output;
+            this.rasterized = rasterizeSvg(markup, {width, height, scale: this.context.options.output.scale});
+        }
+
+        return this.rasterized;
     }
 
     toPng(): Promise<string> {
@@ -78,7 +99,7 @@ export class CaptureResult {
         if (!blob) {
             blob = (async () => {
                 await this.context.hooks.beforeExport(this.context, {format});
-                const canvas = this.toCanvas();
+                const canvas = await this.resolveCanvas();
                 return await new Promise<Blob>((resolve, reject) => {
                     canvas.toBlob(
                         (result) => (result ? resolve(result) : reject(new Error(`Failed to encode ${format} blob`))),
@@ -109,7 +130,7 @@ export class CaptureResult {
         if (!dataUrl) {
             dataUrl = (async () => {
                 await this.context.hooks.beforeExport(this.context, {format});
-                return this.toCanvas().toDataURL(MIME_TYPES[format], quality);
+                return (await this.resolveCanvas()).toDataURL(MIME_TYPES[format], quality);
             })();
             this.dataUrls.set(key, dataUrl);
         }

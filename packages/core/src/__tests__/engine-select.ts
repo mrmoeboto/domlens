@@ -49,14 +49,15 @@ describe('selectEngine', () => {
         expect(engine).toBe(canvas);
     });
 
-    it('should prefer a supported svg engine for auto', async () => {
+    it('should use the svg engine when explicitly requested and registered', async () => {
         const svg = makeEngine('svg');
         const registry: EngineRegistry = {canvas: () => makeEngine('canvas'), svg: () => svg};
-        expect(await selectEngine(makeContext({engine: 'auto'}), registry)).toBe(svg);
+        expect(await selectEngine(makeContext({engine: 'svg'}), registry)).toBe(svg);
     });
 
-    it('should fall back to canvas for auto when the svg engine reports no support', async () => {
-        const svg = makeEngine('svg', {supports: () => Promise.resolve({ok: false, reason: 'no foreignObject'})});
+    it('should keep resolving auto to canvas while the svg engine is not yet the default', async () => {
+        // The auto → svg flip is gated on the svg engine clearing the fidelity scorecard.
+        const svg = makeEngine('svg');
         const canvas = makeEngine('canvas');
         const registry: EngineRegistry = {canvas: () => canvas, svg: () => svg};
         expect(await selectEngine(makeContext({engine: 'auto'}), registry)).toBe(canvas);

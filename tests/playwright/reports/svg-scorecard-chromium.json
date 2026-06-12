@@ -1,0 +1,387 @@
+{
+  "engine": "svg",
+  "browser": "chromium",
+  "summary": {
+    "total": 94,
+    "captured": 94,
+    "pct90": 83
+  },
+  "tests": [
+    {
+      "path": "acid2.html",
+      "ssim": 0.9685657168032675
+    },
+    {
+      "path": "animation.html",
+      "ssim": 0.9999616330678265
+    },
+    {
+      "path": "background/box-shadow.html",
+      "ssim": 0.9990266121297046
+    },
+    {
+      "path": "background/clip.html",
+      "ssim": 0.8070527620875549
+    },
+    {
+      "path": "background/encoded.html",
+      "ssim": 0.9999966692797889
+    },
+    {
+      "path": "background/linear-gradient.html",
+      "ssim": 0.999808831530062
+    },
+    {
+      "path": "background/linear-gradient2.html",
+      "ssim": 0.9999927771803143
+    },
+    {
+      "path": "background/multi.html",
+      "ssim": 0.8115310630591116
+    },
+    {
+      "path": "background/origin.html",
+      "ssim": 0.6849016001379219
+    },
+    {
+      "path": "background/position.html",
+      "ssim": 0.7270762952539226
+    },
+    {
+      "path": "background/radial-gradient.html",
+      "ssim": 0.999806242612815
+    },
+    {
+      "path": "background/radial-gradient2.html",
+      "ssim": 0.9998108996186478
+    },
+    {
+      "path": "background/repeat.html",
+      "ssim": 0.7627882529757062
+    },
+    {
+      "path": "background/size.html",
+      "ssim": 0.45700415357749985
+    },
+    {
+      "path": "border/dashed.html",
+      "ssim": 1
+    },
+    {
+      "path": "border/dotted.html",
+      "ssim": 0.9999985850356766
+    },
+    {
+      "path": "border/double.html",
+      "ssim": 1
+    },
+    {
+      "path": "border/inset.html",
+      "ssim": 0.917560357251349
+    },
+    {
+      "path": "border/radius.html",
+      "ssim": 0.999993601961025
+    },
+    {
+      "path": "border/solid.html",
+      "ssim": 1
+    },
+    {
+      "path": "clip.html",
+      "ssim": 0.9953005082582652
+    },
+    {
+      "path": "crossorigin-iframe.html",
+      "ssim": 0.5142349909799077
+    },
+    {
+      "path": "dynamicstyle.html",
+      "ssim": 0.9918282806537361
+    },
+    {
+      "path": "forms.html",
+      "ssim": 0.9999044821952222
+    },
+    {
+      "path": "iframe.html",
+      "ssim": 0.6634316508036565
+    },
+    {
+      "path": "images/base.html",
+      "ssim": 0.682255464908774
+    },
+    {
+      "path": "images/canvas.html",
+      "ssim": 1
+    },
+    {
+      "path": "images/cross-origin.html",
+      "ssim": 0.7437472635900377
+    },
+    {
+      "path": "images/doctype.html",
+      "ssim": 0.9714333784543272
+    },
+    {
+      "path": "images/empty.html",
+      "ssim": 0.9978015782394066
+    },
+    {
+      "path": "images/images.html",
+      "ssim": 0.4511063418000998
+    },
+    {
+      "path": "images/svg/base64.html",
+      "ssim": 0.9999753341835363
+    },
+    {
+      "path": "images/svg/external.html",
+      "ssim": 0.7675573596476699
+    },
+    {
+      "path": "images/svg/inline.html",
+      "ssim": 0.9999711944667748
+    },
+    {
+      "path": "images/svg/native_only.html",
+      "ssim": 0.834651609125701
+    },
+    {
+      "path": "images/svg/node.html",
+      "ssim": 0.999898926848805
+    },
+    {
+      "path": "images/video.html",
+      "ssim": 0.7966294386335727
+    },
+    {
+      "path": "list/decimal-leading-zero.html",
+      "ssim": 0.999821927639185
+    },
+    {
+      "path": "list/decimal.html",
+      "ssim": 0.999841878617647
+    },
+    {
+      "path": "list/liststyle.html",
+      "ssim": 0.9646073191920898
+    },
+    {
+      "path": "list/lower-alpha.html",
+      "ssim": 0.9998287084793714
+    },
+    {
+      "path": "list/upper-roman.html",
+      "ssim": 0.9998311060092464
+    },
+    {
+      "path": "options/crop-2.html",
+      "ssim": 0.9997407557822999
+    },
+    {
+      "path": "options/crop.html",
+      "ssim": 0.9999868275114145
+    },
+    {
+      "path": "options/element.html",
+      "ssim": 0.9991954728257706
+    },
+    {
+      "path": "options/ignore-2.html",
+      "ssim": 0.9991954728257706
+    },
+    {
+      "path": "options/ignore.html",
+      "ssim": 0.9711973239240118
+    },
+    {
+      "path": "options/onclone.html",
+      "ssim": 0.9997474872988776
+    },
+    {
+      "path": "options/scroll-2.html",
+      "ssim": 0.9991954728257706
+    },
+    {
+      "path": "options/scroll.html",
+      "ssim": 0.9999990671242749
+    },
+    {
+      "path": "overflow/overflow-transform.html",
+      "ssim": 0.99983924401315
+    },
+    {
+      "path": "overflow/overflow.html",
+      "ssim": 0.9719271468234711
+    },
+    {
+      "path": "pseudo-content.html",
+      "ssim": 0.9781410967553996
+    },
+    {
+      "path": "pseudoelements.html",
+      "ssim": 0.9295825885392137
+    },
+    {
+      "path": "text/child-textnodes.html",
+      "ssim": 0.9998258159607007
+    },
+    {
+      "path": "text/lang/chinese.html",
+      "ssim": 0.9987527049468129
+    },
+    {
+      "path": "text/lang/persian.html",
+      "ssim": 0.9998825004757835
+    },
+    {
+      "path": "text/lang/thai.html",
+      "ssim": 0.9982736375775743
+    },
+    {
+      "path": "text/line-break.html",
+      "ssim": 0.9857269262321845
+    },
+    {
+      "path": "text/linethrough.html",
+      "ssim": 0.99994093367766
+    },
+    {
+      "path": "text/multiple.html",
+      "ssim": 0.99994093367766
+    },
+    {
+      "path": "text/overflow-wrap.html",
+      "ssim": 0.9993612830127111
+    },
+    {
+      "path": "text/shadow.html",
+      "ssim": 0.998417779700682
+    },
+    {
+      "path": "text/stroke.html",
+      "ssim": 0.9995209016019536
+    },
+    {
+      "path": "text/text.html",
+      "ssim": 0.9990637928157914
+    },
+    {
+      "path": "text/textarea.html",
+      "ssim": 0.9560038216794281
+    },
+    {
+      "path": "text/underline-lineheight.html",
+      "ssim": 0.99994093367766
+    },
+    {
+      "path": "text/underline.html",
+      "ssim": 0.9999335748437859
+    },
+    {
+      "path": "text/word-break.html",
+      "ssim": 0.9992898686206325
+    },
+    {
+      "path": "transform/nested.html",
+      "ssim": 0.9997419177702371
+    },
+    {
+      "path": "transform/rotate.html",
+      "ssim": 0.8288428082120503
+    },
+    {
+      "path": "transform/translate.html",
+      "ssim": 0.9998027437409991
+    },
+    {
+      "path": "visibility.html",
+      "ssim": 0.9998762769594449
+    },
+    {
+      "path": "webcomponents/webcomponents.html",
+      "ssim": 0.9731727759568524
+    },
+    {
+      "path": "zindex/z-index1.html",
+      "ssim": 0.9997446028531266
+    },
+    {
+      "path": "zindex/z-index10.html",
+      "ssim": 0.9995854719294129
+    },
+    {
+      "path": "zindex/z-index11.html",
+      "ssim": 0.9998660244564453
+    },
+    {
+      "path": "zindex/z-index12.html",
+      "ssim": 0.9999457202018798
+    },
+    {
+      "path": "zindex/z-index13.html",
+      "ssim": 0.999997362245169
+    },
+    {
+      "path": "zindex/z-index14.html",
+      "ssim": 0.9926340600593474
+    },
+    {
+      "path": "zindex/z-index15.html",
+      "ssim": 0.9999997504869846
+    },
+    {
+      "path": "zindex/z-index16.html",
+      "ssim": 0.8471814766706304
+    },
+    {
+      "path": "zindex/z-index17.html",
+      "ssim": 0.9999836946895074
+    },
+    {
+      "path": "zindex/z-index18.html",
+      "ssim": 0.9999989531007271
+    },
+    {
+      "path": "zindex/z-index19.html",
+      "ssim": 1
+    },
+    {
+      "path": "zindex/z-index2.html",
+      "ssim": 0.9997317719851633
+    },
+    {
+      "path": "zindex/z-index20.html",
+      "ssim": 1
+    },
+    {
+      "path": "zindex/z-index3.html",
+      "ssim": 0.9998657340380047
+    },
+    {
+      "path": "zindex/z-index4.html",
+      "ssim": 0.9999760662848259
+    },
+    {
+      "path": "zindex/z-index5.html",
+      "ssim": 0.9999861819921857
+    },
+    {
+      "path": "zindex/z-index6.html",
+      "ssim": 0.9999624226954016
+    },
+    {
+      "path": "zindex/z-index7.html",
+      "ssim": 0.9997168245170285
+    },
+    {
+      "path": "zindex/z-index8.html",
+      "ssim": 0.9998149725197839
+    },
+    {
+      "path": "zindex/z-index9.html",
+      "ssim": 0.9996558364209609
+    }
+  ]
+}
