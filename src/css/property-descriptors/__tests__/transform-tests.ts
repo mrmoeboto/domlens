@@ -1,3 +1,4 @@
+import {describe, it} from 'vitest';
 import {transform} from '../transform';
 import {Parser} from '../../syntax/parser';
 import {deepStrictEqual} from 'assert';

@@ -1,3 +1,4 @@
+import {describe, it} from 'vitest';
 import {deepStrictEqual} from 'assert';
 import {CSSFunction, Parser} from '../../../syntax/parser';
 import {radialGradient} from '../radial-gradient';

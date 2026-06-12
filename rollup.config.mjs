@@ -38,6 +38,7 @@ export default {
             inlineSources: true,
             noEmit: false,
             outputToFilesystem: false,
+            exclude: ['src/**/__tests__/**', 'src/**/__mocks__/**'],
             compilerOptions: {types: []}
         }),
         commonjs({include: 'node_modules/**'})

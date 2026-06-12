@@ -17,3 +17,5 @@ debug.log
 tests/reftests.js
 *.log
 .rpt2_cache
+/test-results/
+/playwright-report/

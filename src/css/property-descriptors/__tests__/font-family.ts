@@ -1,3 +1,4 @@
+import {describe, it} from 'vitest';
 import {deepEqual} from 'assert';
 import {Parser} from '../../syntax/parser';
 import {fontFamily} from '../font-family';

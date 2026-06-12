@@ -1,24 +1,25 @@
+import {describe, expect, it, vi} from 'vitest';
 import html2canvas from '../index';
 
 import {CanvasRenderer} from '../render/canvas/canvas-renderer';
 import {DocumentCloner} from '../dom/document-cloner';
 import {COLORS} from '../css/types/color';
 
-jest.mock('../core/logger');
-jest.mock('../css/layout/bounds');
-jest.mock('../dom/document-cloner');
-jest.mock('../dom/node-parser', () => {
+vi.mock('../core/logger');
+vi.mock('../css/layout/bounds');
+vi.mock('../dom/document-cloner');
+vi.mock('../dom/node-parser', () => {
     return {
         isBodyElement: () => false,
         isHTMLElement: () => false,
-        parseTree: jest.fn().mockImplementation(() => {
+        parseTree: vi.fn().mockImplementation(() => {
             return {styles: {}};
         })
     };
 });
 
-jest.mock('../render/stacking-context');
-jest.mock('../render/canvas/canvas-renderer');
+vi.mock('../render/stacking-context');
+vi.mock('../render/canvas/canvas-renderer');
 
 describe('html2canvas', () => {
     const element = {
@@ -31,7 +32,7 @@ describe('html2canvas', () => {
     } as HTMLElement;
 
     it('should render with an element', async () => {
-        DocumentCloner.destroy = jest.fn().mockReturnValue(true);
+        DocumentCloner.destroy = vi.fn().mockReturnValue(true);
         await html2canvas(element);
         expect(CanvasRenderer).toHaveBeenLastCalledWith(
             expect.objectContaining({
@@ -74,7 +75,7 @@ describe('html2canvas', () => {
     });
 
     it('should not remove cloned window when removeContainer: false', async () => {
-        DocumentCloner.destroy = jest.fn();
+        DocumentCloner.destroy = vi.fn();
         await html2canvas(element, {removeContainer: false});
         expect(CanvasRenderer).toHaveBeenLastCalledWith(
             expect.anything(),

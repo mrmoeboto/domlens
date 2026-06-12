@@ -1,3 +1,4 @@
+import {describe, it} from 'vitest';
 import {deepStrictEqual} from 'assert';
 import {Parser} from '../../syntax/parser';
 import {paintOrder, PAINT_ORDER_LAYER} from '../paint-order';

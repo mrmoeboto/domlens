@@ -1,3 +1,4 @@
+import {afterEach, beforeEach, describe, it} from 'vitest';
 import {deepStrictEqual, fail} from 'assert';
 import {FEATURES} from '../features';
 import {CacheStorage} from '../cache-storage';

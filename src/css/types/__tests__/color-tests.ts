@@ -1,3 +1,4 @@
+import {describe, it} from 'vitest';
 import {strictEqual} from 'assert';
 import {asString, color, isTransparent, pack} from '../color';
 import {Parser} from '../../syntax/parser';

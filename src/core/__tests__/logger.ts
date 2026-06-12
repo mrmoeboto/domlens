@@ -1,3 +1,4 @@
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {Logger} from '../logger';
 
 describe('logger', () => {
@@ -5,7 +6,7 @@ describe('logger', () => {
     let infoSpy: any;
 
     beforeEach(() => {
-        infoSpy = jest.spyOn(console, 'info').mockImplementation(() => {
+        infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {
             // do nothing
         });
     });
