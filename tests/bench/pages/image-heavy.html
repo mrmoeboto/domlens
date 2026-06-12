@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>bench: image-heavy</title>
+        <style>
+            body {
+                margin: 0;
+                padding: 24px;
+                background: #111827;
+                font-family: Arial, sans-serif;
+                color: #e5e7eb;
+            }
+            h1 {
+                font-size: 18px;
+                margin: 0 0 16px;
+            }
+            .grid {
+                display: grid;
+                grid-template-columns: repeat(6, 1fr);
+                gap: 12px;
+                max-width: 1100px;
+            }
+            .grid figure {
+                margin: 0;
+                background: #1f2937;
+                border-radius: 8px;
+                padding: 8px;
+                text-align: center;
+            }
+            .grid img {
+                display: block;
+                margin: 0 auto 6px;
+                border-radius: 4px;
+            }
+            .grid figcaption {
+                font-size: 10px;
+                color: #9ca3af;
+            }
+            .banner {
+                height: 60px;
+                margin: 16px 0;
+                border-radius: 8px;
+                background-image: url('../../assets/bg-sliver.png?bench-bg=1');
+                background-repeat: repeat;
+            }
+            .tile-bg {
+                height: 110px;
+                margin: 16px 0;
+                border-radius: 8px;
+                background-image: url('../../assets/image2.jpg?bench-bg=2'), url('../../assets/bg-sliver.png?bench-bg=3');
+                background-repeat: repeat, repeat-x;
+                background-size: 55px 55px, auto;
+            }
+            .hero {
+                height: 140px;
+                margin: 16px 0;
+                border-radius: 8px;
+                background-image: linear-gradient(rgba(17, 24, 39, 0.55), rgba(17, 24, 39, 0.55)),
+                    url('../../assets/image.jpg?bench-bg=4');
+                background-size: cover, 120px 120px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 22px;
+                letter-spacing: 0.1em;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>scenario: image-heavy &mdash; 36 img elements (unique URLs, various sizes) + 4 background-image layers</h1>
+        <div class="banner"></div>
+        <div class="grid" id="grid"></div>
+        <div class="tile-bg"></div>
+        <div class="hero">IMAGE PIPELINE</div>
+        <script>
+            // 36 <img> tags built at parse time. Query strings make every URL unique so each
+            // capture exercises 36 distinct image resources (fetch/encode paths), and the
+            // rendered sizes vary from 40px to 160px.
+            (function () {
+                var sources = [
+                    '../../assets/image.jpg',
+                    '../../assets/image2.jpg',
+                    '../../assets/image_1.jpg',
+                    '../../assets/image2_1.jpg',
+                    '../../assets/image.svg',
+                    '../../assets/bg-sliver.png'
+                ];
+                var html = '';
+                for (var i = 0; i < 36; i++) {
+                    var size = 40 + (i % 7) * 20; // 40..160px
+                    var src = sources[i % sources.length] + '?bench-img=' + i;
+                    html +=
+                        '<figure><img src="' + src + '" width="' + size + '" height="' + size + '" alt="img ' + i + '" />' +
+                        '<figcaption>#' + i + ' &middot; ' + size + 'px</figcaption></figure>';
+                }
+                document.getElementById('grid').innerHTML = html;
+            })();
+        </script>
+    </body>
+</html>

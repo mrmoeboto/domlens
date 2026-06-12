@@ -22,3 +22,5 @@ tests/reftests.js
 /playwright-report/
 # Scorecard JSON reports are committed; any debug images written next to them are not.
 tests/playwright/reports/*.png
+# Competitor bundles staged on demand by tests/bench/build-vendor.ts (npm run bench).
+tests/bench/vendor/

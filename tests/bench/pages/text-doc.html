@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>bench: text-doc</title>
+        <style>
+            /* Local OFL-licensed webfonts (tests/assets/fonts/): two families, three faces. */
+            @font-face {
+                font-family: 'Karla';
+                font-style: normal;
+                font-weight: 400;
+                src: url('../../assets/fonts/karla-latin-400-normal.woff2') format('woff2');
+            }
+            @font-face {
+                font-family: 'Karla';
+                font-style: italic;
+                font-weight: 400;
+                src: url('../../assets/fonts/karla-latin-400-italic.woff2') format('woff2');
+            }
+            @font-face {
+                font-family: 'Karla';
+                font-style: normal;
+                font-weight: 700;
+                src: url('../../assets/fonts/karla-latin-700-normal.woff2') format('woff2');
+            }
+            @font-face {
+                font-family: 'Lobster';
+                font-style: normal;
+                font-weight: 400;
+                src: url('../../assets/fonts/lobster-latin-400-normal.woff2') format('woff2');
+            }
+            body {
+                margin: 0;
+                padding: 32px 0;
+                background: #fcfcf9;
+                color: #232323;
+                font-family: 'Karla', sans-serif;
+                font-size: 15px;
+                line-height: 1.6;
+            }
+            article {
+                max-width: 680px;
+                margin: 0 auto;
+            }
+            h1 {
+                font-family: 'Lobster', cursive;
+                font-weight: 400;
+                font-size: 40px;
+                margin: 0 0 8px;
+            }
+            h2 {
+                font-weight: 700;
+                font-size: 22px;
+                margin: 28px 0 6px;
+                border-bottom: 2px solid #d9d4c5;
+            }
+            .byline {
+                font-style: italic;
+                color: #6b6b66;
+                margin: 0 0 24px;
+            }
+            p {
+                margin: 0 0 12px;
+            }
+            em {
+                font-style: italic;
+            }
+            strong {
+                font-weight: 700;
+            }
+            blockquote {
+                margin: 16px 0;
+                padding: 8px 20px;
+                border-left: 4px solid #b8b2a0;
+                background: #f4f2ea;
+                font-style: italic;
+            }
+            ul,
+            ol {
+                margin: 0 0 12px;
+                padding-left: 28px;
+            }
+            code {
+                font-family: 'Courier New', monospace;
+                background: #efede4;
+                padding: 0 4px;
+                font-size: 13px;
+            }
+        </style>
+    </head>
+    <body>
+        <article id="doc">
+            <h1>The Long Article Benchmark</h1>
+            <p class="byline">scenario: text-doc &mdash; ~200 paragraphs, two families, three faces, lists and quotes</p>
+        </article>
+        <script>
+            // Generate the article body at parse time so the file stays small while the
+            // captured DOM is a realistic long-form document (~200 paragraphs + lists).
+            (function () {
+                var article = document.getElementById('doc');
+                var sentences = [
+                    'Typesetting a long document exercises text measurement, line breaking and font fallback in every DOM capture library.',
+                    'Each paragraph mixes <strong>bold runs</strong>, <em>italic runs</em> and inline <code>code spans</code> to force style changes mid-line.',
+                    'Sphinx of black quartz, judge my vow; the quick brown fox jumps over the lazy dog while 0123456789 waits.',
+                    'Serialization cost grows with node count, so two hundred paragraphs is where style inlining strategies start to diverge.',
+                    'A capture engine that diffs computed styles against per-tag defaults should emit far fewer bytes here than one that does not.'
+                ];
+                var html = '';
+                for (var section = 0; section < 10; section++) {
+                    html += '<h2>Section ' + (section + 1) + ': measured prose</h2>';
+                    for (var i = 0; i < 20; i++) {
+                        html += '<p>' + sentences[(section + i) % sentences.length] + ' Paragraph ' + (section * 20 + i + 1) + ' of 200.</p>';
+                        if (i === 7) {
+                            html += '<blockquote>Quoted aside ' + (section + 1) + ': italic webfont text inside a styled blockquote.</blockquote>';
+                        }
+                        if (i === 14) {
+                            html += '<ul><li>unordered item one</li><li>item two with <strong>bold</strong></li><li>item three with <em>italics</em></li></ul>';
+                        }
+                    }
+                    html += '<ol><li>first ordered entry</li><li>second ordered entry</li><li>third ordered entry</li></ol>';
+                }
+                article.insertAdjacentHTML('beforeend', html);
+            })();
+        </script>
+    </body>
+</html>

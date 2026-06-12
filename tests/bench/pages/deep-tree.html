@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>bench: deep-tree</title>
+        <style>
+            body {
+                margin: 0;
+                padding: 16px;
+                background: #fafafa;
+                font-family: Arial, sans-serif;
+                font-size: 10px;
+                color: #333;
+            }
+            .branch {
+                display: flex;
+                gap: 2px;
+                padding: 2px;
+                border: 1px solid rgba(0, 0, 0, 0.08);
+                border-radius: 3px;
+            }
+            .branch.col {
+                flex-direction: column;
+            }
+            .grid-branch {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 2px;
+                padding: 2px;
+                border: 1px dashed rgba(30, 64, 175, 0.25);
+            }
+            .leaf {
+                flex: 1;
+                min-width: 8px;
+                min-height: 8px;
+                border-radius: 2px;
+                text-align: center;
+                overflow: hidden;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="root"></div>
+        <script>
+            // Build a deeply nested flex/grid tree synchronously at parse time:
+            // 24 top-level columns, each a 10-level-deep alternating flex/grid chain whose
+            // levels carry leaf nodes -> ~3200 elements total, depth ~11.
+            (function () {
+                var count = 0;
+                var makeLeaf = function (depth) {
+                    var leaf = document.createElement('div');
+                    leaf.className = 'leaf';
+                    leaf.style.background = 'hsl(' + ((count * 17) % 360) + ', 60%, ' + (88 - depth * 3) + '%)';
+                    leaf.textContent = count;
+                    count++;
+                    return leaf;
+                };
+                var makeChain = function (depth) {
+                    var node = document.createElement('div');
+                    if (depth % 3 === 2) {
+                        node.className = 'grid-branch';
+                    } else {
+                        node.className = depth % 2 === 0 ? 'branch' : 'branch col';
+                    }
+                    count++;
+                    // Leaves widen the tree at every level.
+                    for (var i = 0; i < 11; i++) {
+                        node.appendChild(makeLeaf(depth));
+                    }
+                    if (depth < 10) {
+                        node.appendChild(makeChain(depth + 1));
+                    }
+                    return node;
+                };
+                var root = document.getElementById('root');
+                root.className = 'branch';
+                root.style.flexWrap = 'wrap';
+                for (var c = 0; c < 24; c++) {
+                    root.appendChild(makeChain(0));
+                }
+                // Expose the node count so the harness can sanity-check the scenario.
+                window.__benchNodeCount = document.querySelectorAll('*').length;
+            })();
+        </script>
+    </body>
+</html>

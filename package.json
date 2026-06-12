@@ -24,6 +24,7 @@
     "test": "npm run lint && npm run typecheck && npm run unittest && npm run reftests",
     "unittest": "vitest run",
     "reftests": "playwright test",
+    "bench": "tsx tests/bench/build-vendor.ts && playwright test --config=playwright.bench.config.ts",
     "watch": "npm run watch --workspace=@domlens/core",
     "start": "tsx tests/server.ts --port=8080 --cors=8081"
   },

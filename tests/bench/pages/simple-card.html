@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>bench: simple-card</title>
+        <style>
+            body {
+                margin: 0;
+                padding: 40px;
+                background: #f3f4f6;
+                font-family: Arial, Helvetica, sans-serif;
+            }
+            .card {
+                width: 360px;
+                margin: 0 auto;
+                background: #ffffff;
+                border: 1px solid #e5e7eb;
+                border-radius: 12px;
+                box-shadow: 0 10px 25px rgba(15, 23, 42, 0.15);
+                overflow: hidden;
+            }
+            .card-header {
+                background: linear-gradient(135deg, #4f46e5 0%, #9333ea 100%);
+                color: #fff;
+                padding: 20px 24px;
+            }
+            .card-header h1 {
+                margin: 0;
+                font-size: 20px;
+                letter-spacing: 0.02em;
+            }
+            .card-header p {
+                margin: 4px 0 0;
+                font-size: 12px;
+                opacity: 0.85;
+            }
+            .card-body {
+                padding: 20px 24px;
+                color: #1f2937;
+                font-size: 14px;
+                line-height: 1.55;
+            }
+            .avatar {
+                float: right;
+                width: 48px;
+                height: 48px;
+                border-radius: 50%;
+                border: 2px solid #4f46e5;
+                margin-left: 12px;
+            }
+            .tags {
+                margin: 14px 0 0;
+                padding: 0;
+                list-style: none;
+                display: flex;
+                gap: 8px;
+            }
+            .tags li {
+                background: #eef2ff;
+                color: #4338ca;
+                border-radius: 999px;
+                padding: 3px 10px;
+                font-size: 11px;
+                font-weight: bold;
+            }
+            .card-footer {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border-top: 1px solid #e5e7eb;
+                padding: 14px 24px;
+                font-size: 12px;
+                color: #6b7280;
+            }
+            .button {
+                background: #4f46e5;
+                color: #fff;
+                border-radius: 6px;
+                padding: 8px 16px;
+                font-weight: bold;
+                text-decoration: none;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <div class="card-header">
+                <h1>DOM capture benchmark</h1>
+                <p>scenario: simple-card &mdash; one small styled component</p>
+            </div>
+            <div class="card-body">
+                <img class="avatar" src="../../assets/image.jpg" alt="avatar" width="48" height="48" />
+                A small card with gradients, border-radius, box-shadow, a floated image and flex
+                layout &mdash; the &ldquo;capture one component&rdquo; case every library should
+                handle in a few milliseconds.
+                <ul class="tags">
+                    <li>gradient</li>
+                    <li>shadow</li>
+                    <li>flex</li>
+                </ul>
+            </div>
+            <div class="card-footer">
+                <span>updated today</span>
+                <a class="button" href="#">Action</a>
+            </div>
+        </div>
+    </body>
+</html>
