@@ -1,11 +1,11 @@
 {
-  "title": "domlens",
-  "name": "@domlens/core",
-  "description": "DOM capture engine \u2014 core of the domlens library",
-  "main": "dist/domlens.js",
-  "module": "dist/domlens.esm.js",
+  "title": "html2canvas",
+  "name": "domlens-html2canvas",
+  "description": "Drop-in html2canvas replacement: the classic html2canvas(element, options) API implemented on top of @domlens/core",
+  "main": "dist/html2canvas.js",
+  "module": "dist/html2canvas.esm.js",
   "typings": "dist/types/index.d.ts",
-  "browser": "dist/domlens.js",
+  "browser": "dist/html2canvas.js",
   "version": "1.4.1",
   "author": {
     "name": "Niklas von Hertzen",
@@ -23,13 +23,11 @@
     "url": "https://github.com/niklasvh/html2canvas/issues"
   },
   "scripts": {
-    "build": "rimraf dist && rollup -c rollup.config.mjs && tsc -p tsconfig.build.json",
-    "watch": "rollup -c rollup.config.mjs -w"
+    "build": "rimraf dist && rollup -c rollup.config.mjs && tsc -p tsconfig.build.json"
   },
   "homepage": "https://html2canvas.hertzen.com",
   "license": "MIT",
   "dependencies": {
-    "css-line-break": "^2.1.0",
-    "text-segmentation": "^1.0.3"
+    "@domlens/core": "1.4.1"
   }
 }

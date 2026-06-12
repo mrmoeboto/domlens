@@ -1,15 +1,12 @@
 import {Bounds} from './engines/canvas/css/layout/bounds';
-import {CloneConfigurations, CloneOptions, DocumentCloner, WindowOptions} from './clone/document-cloner';
+import {CloneConfigurations, DocumentCloner} from './clone/document-cloner';
 import {CacheStorage} from './resources/cache-storage';
-import {RenderOptions} from './engines/canvas/render/canvas/canvas-renderer';
-import {ContextOptions} from './context';
 import {CaptureContext} from './capture-context';
 import {CaptureOptions, resolveOptions} from './options';
 import {CaptureResult} from './capture-result';
 import {CaptureStages, EngineRegistry, executeCapture} from './engines/select';
 import {CanvasEngine} from './engines/canvas/engine';
 import {CaptureEngine, ClonedTree} from './engines/types';
-import {Plugin} from './plugins/types';
 
 export {CaptureContext} from './capture-context';
 export {CaptureResult} from './capture-result';
@@ -141,86 +138,3 @@ const createCloneStages = (element: HTMLElement, context: CaptureContext): Captu
         }
     }
 });
-
-/**
- * Classic html2canvas options, kept for the compatibility entry point below.
- */
-export type Options = CloneOptions &
-    WindowOptions &
-    RenderOptions &
-    ContextOptions & {
-        backgroundColor: string | null;
-        foreignObjectRendering: boolean;
-        removeContainer?: boolean;
-    };
-
-/**
- * Classic html2canvas API, implemented on top of {@link capture} by mapping the legacy
- * option names onto the normalized schema. Behavior (including the html/body background
- * special-casing and container lifecycle) is unchanged.
- */
-const html2canvas = (element: HTMLElement, options: Partial<Options> = {}): Promise<HTMLCanvasElement> => {
-    return renderElement(element, options);
-};
-
-export default html2canvas;
-
-const renderElement = async (element: HTMLElement, opts: Partial<Options>): Promise<HTMLCanvasElement> => {
-    const plugins: Plugin[] = [];
-
-    if (opts.foreignObjectRendering ?? false) {
-        plugins.push({
-            name: 'classic-foreign-object-rendering',
-            beforeClone: (context) =>
-                // The experimental foreignObject renderer was removed; the svg engine replacing it
-                // arrives in a later phase. Render with the canvas engine in the meantime.
-                context.logger.error(
-                    `The foreignObjectRendering option is no longer supported; falling back to canvas rendering`
-                )
-        });
-    }
-
-    const onclone = opts.onclone;
-    if (typeof onclone === 'function') {
-        plugins.push({
-            name: 'classic-onclone',
-            afterClone: (_context, {document, element: clonedElement}) => onclone(document, clonedElement)
-        });
-    }
-
-    const ignoreElements = opts.ignoreElements;
-
-    const result = await capture(element, {
-        engine: 'canvas',
-        output: {
-            scale: opts.scale,
-            width: opts.width,
-            height: opts.height,
-            x: opts.x,
-            y: opts.y,
-            backgroundColor: opts.backgroundColor,
-            canvas: opts.canvas
-        },
-        resources: {
-            cors: (opts.useCORS ?? false) ? 'anonymous' : 'off',
-            allowTaint: opts.allowTaint,
-            proxy: opts.proxy,
-            imageTimeout: opts.imageTimeout,
-            cache: opts.cache
-        },
-        viewport: {
-            width: opts.windowWidth,
-            height: opts.windowHeight,
-            scrollX: opts.scrollX,
-            scrollY: opts.scrollY
-        },
-        filter: ignoreElements ? (el: Element) => !ignoreElements(el) : undefined,
-        plugins,
-        debug: {
-            logging: opts.logging,
-            keepContainer: !(opts.removeContainer ?? true)
-        }
-    });
-
-    return result.toCanvas();
-};

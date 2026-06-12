@@ -18,7 +18,7 @@ export default defineConfig({
     },
     webServer: {
         command: 'tsx tests/server.ts --port=8080 --cors=8081',
-        url: 'http://localhost:8080/packages/core/dist/html2canvas.js',
+        url: 'http://localhost:8080/packages/html2canvas-compat/dist/html2canvas.js',
         reuseExistingServer: !process.env.CI
     },
     projects: [

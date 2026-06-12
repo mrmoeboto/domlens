@@ -1,0 +1,15 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "noEmit": false,
+        "rootDir": "src",
+        "emitDeclarationOnly": true,
+        "declaration": true,
+        "declarationDir": "dist/types",
+        "sourceMap": false,
+        // Resolve @domlens/core through node_modules (its built dist/types) instead of the
+        // repo-wide source paths mapping, so core sources stay outside this program's rootDir.
+        "paths": {}
+    },
+    "exclude": ["src/**/__tests__/**", "src/**/__mocks__/**"]
+}

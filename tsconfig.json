@@ -13,7 +13,12 @@
         "lib": ["es2020", "dom"],
         "sourceMap": true,
         "resolveJsonModule": true,
-        "noEmit": true
+        "noEmit": true,
+        // Source-based workspace resolution for typecheck/unit tests; package builds
+        // override this (paths: {}) to resolve through node_modules to built artifacts.
+        "paths": {
+            "@domlens/core": ["./packages/core/src/index.ts"]
+        }
     },
-    "include": ["packages/core/src"]
+    "include": ["packages/core/src", "packages/html2canvas-compat/src"]
 }

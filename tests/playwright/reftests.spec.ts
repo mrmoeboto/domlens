@@ -4,7 +4,8 @@
  *
  * For every HTML page under tests/reftests it:
  *  1. loads the page from the local test server (tests/server.ts, started by playwright.config.ts),
- *  2. injects packages/core/dist/html2canvas.js,
+ *  2. injects packages/html2canvas-compat/dist/html2canvas.js (the drop-in compat bundle
+ *     this suite certifies),
  *  3. renders `window.forceElement || document.documentElement` with the same default
  *     options the old runner used (white background, proxy on the CORS server),
  *  4. verifies the resulting canvas is not tainted,
@@ -100,7 +101,9 @@ for (const relPath of reftests) {
         await page.goto(`${urlPath}?selenium&run=false&reftest`);
         // Inject by path (not URL): some pages set <base href> to another origin,
         // which would break relative script URL resolution.
-        await page.addScriptTag({path: path.resolve(__dirname, '../../packages/core/dist/html2canvas.js')});
+        await page.addScriptTag({
+            path: path.resolve(__dirname, '../../packages/html2canvas-compat/dist/html2canvas.js')
+        });
         // Make rendering deterministic: wait for web fonts before capturing.
         await page.evaluate(() => document.fonts.ready.then(() => undefined));
 

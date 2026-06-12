@@ -1,5 +1,5 @@
 import {describe, expect, it, vi} from 'vitest';
-import html2canvas from '../index';
+import {capture} from '../index';
 
 import {CanvasRenderer} from '../engines/canvas/render/canvas/canvas-renderer';
 import {DocumentCloner} from '../clone/document-cloner';
@@ -21,7 +21,7 @@ vi.mock('../engines/canvas/dom/node-parser', () => {
 vi.mock('../engines/canvas/render/stacking-context');
 vi.mock('../engines/canvas/render/canvas/canvas-renderer');
 
-describe('html2canvas', () => {
+describe('capture', () => {
     const element = {
         ownerDocument: {
             defaultView: {
@@ -33,7 +33,7 @@ describe('html2canvas', () => {
 
     it('should render with an element', async () => {
         DocumentCloner.destroy = vi.fn().mockReturnValue(true);
-        await html2canvas(element);
+        await capture(element);
         expect(CanvasRenderer).toHaveBeenLastCalledWith(
             expect.objectContaining({
                 cache: expect.any(Object),
@@ -53,8 +53,8 @@ describe('html2canvas', () => {
         expect(DocumentCloner.destroy).toBeCalled();
     });
 
-    it('should have transparent background with backgroundColor: null', async () => {
-        await html2canvas(element, {backgroundColor: null});
+    it('should have transparent background with output.backgroundColor: null', async () => {
+        await capture(element, {output: {backgroundColor: null}});
         expect(CanvasRenderer).toHaveBeenLastCalledWith(
             expect.anything(),
             expect.objectContaining({
@@ -65,7 +65,7 @@ describe('html2canvas', () => {
 
     it('should use existing canvas when given as option', async () => {
         const canvas = {} as HTMLCanvasElement;
-        await html2canvas(element, {canvas});
+        await capture(element, {output: {canvas}});
         expect(CanvasRenderer).toHaveBeenLastCalledWith(
             expect.anything(),
             expect.objectContaining({
@@ -74,9 +74,9 @@ describe('html2canvas', () => {
         );
     });
 
-    it('should not remove cloned window when removeContainer: false', async () => {
+    it('should not remove cloned window when debug.keepContainer: true', async () => {
         DocumentCloner.destroy = vi.fn();
-        await html2canvas(element, {removeContainer: false});
+        await capture(element, {debug: {keepContainer: true}});
         expect(CanvasRenderer).toHaveBeenLastCalledWith(
             expect.anything(),
             expect.objectContaining({

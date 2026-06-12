@@ -17,7 +17,7 @@
     "url": "https://github.com/niklasvh/html2canvas/issues"
   },
   "scripts": {
-    "build": "npm run build --workspace=@domlens/core",
+    "build": "npm run build --workspace=@domlens/core && npm run build --workspace=domlens-html2canvas",
     "typecheck": "tsc --noEmit",
     "lint": "eslint packages",
     "format": "prettier --write \"{packages/*/src,tests,scripts}/**/*.ts\"",
