@@ -39,17 +39,23 @@ export class CaptureResult {
     }
 
     /**
-     * Returns the rendered canvas synchronously. Only available for canvas engine output;
-     * svg output requires asynchronous rasterization — use toPng()/toBlob() instead.
+     * Returns the rendered canvas synchronously: the canvas engine's output canvas, or the
+     * canvas the svg engine rasterized during render. Throws for svg output constructed
+     * without a rasterized canvas — asynchronous rasterization is then required, use
+     * toPng()/toBlob() instead.
      */
     toCanvas(): HTMLCanvasElement {
-        if (this.output.kind !== 'canvas') {
-            throw new Error(
-                `toCanvas() is synchronous and not available for ${this.output.kind} output; use toPng()/toBlob()`
-            );
+        if (this.output.kind === 'canvas') {
+            return this.output.canvas;
         }
 
-        return this.output.canvas;
+        if (this.output.canvas) {
+            return this.output.canvas;
+        }
+
+        throw new Error(
+            `toCanvas() is synchronous and not available for un-rasterized svg output; use toPng()/toBlob()`
+        );
     }
 
     /**
@@ -65,17 +71,20 @@ export class CaptureResult {
     }
 
     /**
-     * Resolves the output to a canvas: canvas output directly, svg output through a single
-     * cached rasterization (markup → Image → canvas) at the configured output scale.
+     * Resolves the output to a canvas: canvas output (or the canvas the svg engine
+     * rasterized during render) directly, otherwise svg markup through a single cached
+     * rasterization (markup → Image → canvas) at the configured output scale.
      */
     private resolveCanvas(): Promise<HTMLCanvasElement> {
-        if (this.output.kind === 'canvas') {
-            return Promise.resolve(this.output.canvas);
+        if (this.output.kind === 'canvas' || this.output.canvas) {
+            return Promise.resolve(this.output.canvas as HTMLCanvasElement);
         }
 
         if (!this.rasterized) {
             const {markup, width, height} = this.output;
-            this.rasterized = rasterizeSvg(markup, {width, height, scale: this.context.options.output.scale});
+            const {scale} = this.context.options.output;
+            const {allowTaint} = this.context.options.resources;
+            this.rasterized = rasterizeSvg(markup, {width, height, scale, allowTaint});
         }
 
         return this.rasterized;

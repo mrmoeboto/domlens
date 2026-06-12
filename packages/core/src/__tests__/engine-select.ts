@@ -3,6 +3,7 @@ import {Bounds} from '../engines/canvas/css/layout/bounds';
 import {CaptureContext} from '../capture-context';
 import {CaptureOptions, resolveOptions} from '../options';
 import {CaptureStages, EngineRegistry, executeCapture, selectEngine} from '../engines/select';
+import {TaintError} from '../engines/taint-error';
 import {CaptureEngine, EngineName, EngineOutput} from '../engines/types';
 
 const canvasOutput: EngineOutput = {kind: 'canvas', canvas: {} as HTMLCanvasElement, width: 1, height: 1};
@@ -38,7 +39,7 @@ describe('selectEngine', () => {
 
     it('should throw when the svg engine is requested but not registered', async () => {
         await expect(selectEngine(makeContext({engine: 'svg'}), {canvas: () => makeEngine('canvas')})).rejects.toThrow(
-            'svg engine not yet available'
+            'svg engine requested but not registered'
         );
     });
 
@@ -55,9 +56,30 @@ describe('selectEngine', () => {
         expect(await selectEngine(makeContext({engine: 'svg'}), registry)).toBe(svg);
     });
 
-    it('should keep resolving auto to canvas while the svg engine is not yet the default', async () => {
-        // The auto → svg flip is gated on the svg engine clearing the fidelity scorecard.
+    it('should not run the support check for an explicitly requested svg engine', async () => {
+        const supports = vi.fn().mockResolvedValue({ok: false, reason: 'unsupported'});
+        const svg = makeEngine('svg', {supports});
+        const registry: EngineRegistry = {canvas: () => makeEngine('canvas'), svg: () => svg};
+        expect(await selectEngine(makeContext({engine: 'svg'}), registry)).toBe(svg);
+        expect(supports).not.toHaveBeenCalled();
+    });
+
+    it('should prefer the svg engine for auto when its support check passes', async () => {
         const svg = makeEngine('svg');
+        const canvas = makeEngine('canvas');
+        const registry: EngineRegistry = {canvas: () => canvas, svg: () => svg};
+        expect(await selectEngine(makeContext({engine: 'auto'}), registry)).toBe(svg);
+    });
+
+    it('should resolve auto to canvas when the svg support check fails', async () => {
+        const svg = makeEngine('svg', {supports: () => Promise.resolve({ok: false, reason: 'no foreignObject'})});
+        const canvas = makeEngine('canvas');
+        const registry: EngineRegistry = {canvas: () => canvas, svg: () => svg};
+        expect(await selectEngine(makeContext({engine: 'auto'}), registry)).toBe(canvas);
+    });
+
+    it('should resolve auto to canvas when the svg support check rejects', async () => {
+        const svg = makeEngine('svg', {supports: () => Promise.reject(new Error('detection blew up'))});
         const canvas = makeEngine('canvas');
         const registry: EngineRegistry = {canvas: () => canvas, svg: () => svg};
         expect(await selectEngine(makeContext({engine: 'auto'}), registry)).toBe(canvas);
@@ -125,6 +147,24 @@ describe('executeCapture', () => {
         expect(stages.clone).toHaveBeenNthCalledWith(1, svg);
         expect(stages.clone).toHaveBeenNthCalledWith(2, canvas);
         expect(stages.cleanup).toHaveBeenCalledTimes(2);
+    });
+
+    it('should translate a TaintError from the svg engine into the canvas-engine fallback', async () => {
+        const svg = makeEngine('svg', {
+            render: vi.fn().mockRejectedValue(new TaintError('inlining img would taint the canvas'))
+        });
+        const canvas = makeEngine('canvas');
+        const stages = makeStages();
+
+        const output = await executeCapture(makeContext({engine: 'auto'}), stages, {
+            canvas: () => canvas,
+            svg: () => svg
+        });
+
+        expect(output).toBe(canvasOutput);
+        expect(svg.render).toHaveBeenCalledTimes(1);
+        expect(canvas.render).toHaveBeenCalledTimes(1);
+        expect(stages.clone).toHaveBeenCalledTimes(2);
     });
 
     it('should fall back when a beforeRender plugin vetoes a non-canvas engine', async () => {

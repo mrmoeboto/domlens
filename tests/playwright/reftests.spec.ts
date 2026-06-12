@@ -20,7 +20,15 @@
  * element bounds, scale 1 = the configured deviceScaleFactor) using SSIM. Results land in
  * tests/playwright/reports/{engine}-scorecard-{browser}.json. A capture that throws (or
  * falls back to another engine) scores 0 with the error recorded. The canvas scorecard is
- * the absolute-fidelity bar the svg engine must beat before 'auto' flips to svg-first.
+ * the absolute-fidelity bar the svg engine had to beat before 'auto' flipped to svg-first.
+ *
+ * SVG baseline regression dimension (deterministic, on top of the trend scorecard):
+ *  - UPDATE_SVG_BASELINES=1 (re)generates tests/playwright/baselines-svg/{browser}/ PNGs
+ *    for every reftest whose svg capture currently scores SSIM >= 0.90, and writes a
+ *    manifest (baselines-svg/{browser}/manifest.json) listing exactly those tests.
+ *  - normal ENGINE=svg runs compare the manifest tests against the committed svg
+ *    baselines with pixelmatch (a regression fails the run) AND still emit the full ssim
+ *    scorecard, which keeps scoring the tests not yet good enough for a baseline.
  */
 import {test, expect} from '@playwright/test';
 import type {Page} from '@playwright/test';
@@ -33,16 +41,24 @@ import {SKIPPED_REFTESTS, BrowserName} from './skip';
 
 const REFTESTS_DIR = path.resolve(__dirname, '../reftests');
 const BASELINES_DIR = path.resolve(__dirname, 'baselines');
+const SVG_BASELINES_DIR = path.resolve(__dirname, 'baselines-svg');
 const REPORTS_DIR = path.resolve(__dirname, 'reports');
 const CORE_BUNDLE = path.resolve(__dirname, '../../packages/core/dist/domlens.js');
 const PROXY_URL = 'http://localhost:8081/proxy';
 const UPDATE_BASELINES = process.env.UPDATE_BASELINES === '1';
-const SCORECARD_ENGINE = process.env.ENGINE === 'svg' || process.env.ENGINE === 'canvas' ? process.env.ENGINE : null;
+const UPDATE_SVG_BASELINES = process.env.UPDATE_SVG_BASELINES === '1';
+const SCORECARD_ENGINE = UPDATE_SVG_BASELINES
+    ? 'svg'
+    : process.env.ENGINE === 'svg' || process.env.ENGINE === 'canvas'
+      ? process.env.ENGINE
+      : null;
 
 // Pixelmatch per-pixel color threshold (0..1); tolerant of minor antialiasing changes.
 const PIXELMATCH_THRESHOLD = 0.1;
 // Maximum fraction of pixels that may differ before the test fails.
 const MAX_DIFF_PIXEL_RATIO = 0.005;
+// Only reftests at or above this SSIM score get a committed svg baseline.
+const SVG_BASELINE_SSIM_THRESHOLD = 0.9;
 
 // ignore.txt semantics (from the old scripts/create-reftest-list.ts): one test per line,
 // either "<path>" (ignored everywhere) or "[Browser1,Browser2]<path>" (ignored in the
@@ -125,6 +141,23 @@ interface Scorecard {
     tests: ScorecardEntry[];
 }
 
+/** baselines-svg/{browser}/manifest.json: which reftests have a committed svg baseline. */
+interface SvgBaselineManifest {
+    engine: 'svg';
+    browser: string;
+    /** SSIM bar a test had to clear (against the native screenshot) to be baselined. */
+    ssimThreshold: number;
+    /** Reftest paths (relative to tests/reftests) with a committed baseline PNG. */
+    tests: string[];
+}
+
+const svgManifestPath = (browser: string): string => path.join(SVG_BASELINES_DIR, browser, 'manifest.json');
+
+const readSvgManifest = (browser: string): SvgBaselineManifest | null => {
+    const file = svgManifestPath(browser);
+    return fs.existsSync(file) ? (JSON.parse(fs.readFileSync(file, 'utf-8')) as SvgBaselineManifest) : null;
+};
+
 const cropPng = (src: PNG, x: number, y: number, width: number, height: number): PNG => {
     const out = new PNG({width, height});
     PNG.bitblt(src, out, x, y, width, height, 0, 0);
@@ -138,10 +171,11 @@ const asImageData = (png: PNG): {data: Uint8ClampedArray; width: number; height:
 });
 
 /**
- * Captures one reftest page with the requested engine and returns its SSIM score against
- * a native screenshot of the live page, cropped to the captured element's bounds.
+ * Captures one reftest page with the requested engine and returns the captured PNG plus
+ * its SSIM score against a native screenshot of the live page, cropped to the captured
+ * element's bounds.
  */
-const scorePage = async (page: Page, urlPath: string, engine: string): Promise<number> => {
+const scorePage = async (page: Page, urlPath: string, engine: string): Promise<{ssim: number; actual: PNG}> => {
     await page.goto(`${urlPath}?selenium&run=false&reftest`);
     await page.addScriptTag({path: CORE_BUNDLE});
     await page.evaluate(() => document.fonts.ready.then(() => undefined));
@@ -195,15 +229,64 @@ const scorePage = async (page: Page, urlPath: string, engine: string): Promise<n
         asImageData(cropPng(actual, 0, 0, width, height)),
         asImageData(cropPng(native, x, y, width, height))
     );
-    return mssim;
+    return {ssim: mssim, actual};
 };
 
 if (SCORECARD_ENGINE) {
     const engine = SCORECARD_ENGINE;
 
-    test(`ssim scorecard (${engine} engine)`, async ({page, browserName}) => {
+    test(`ssim scorecard (${engine} engine)`, async ({page, browserName}, testInfo) => {
         // Sequential over ~95 pages; well above the default per-test timeout.
         test.setTimeout(30 * 60_000);
+
+        // svg baseline regression dimension (see file header).
+        const svgBaselines = engine === 'svg';
+        const manifest = svgBaselines && !UPDATE_SVG_BASELINES ? readSvgManifest(browserName) : null;
+        const baselined = new Set(manifest?.tests ?? []);
+        const baselineFailures: string[] = [];
+        const updatedBaselines: string[] = [];
+        if (UPDATE_SVG_BASELINES) {
+            // Regenerate from scratch so removed/regressed tests do not leave stale PNGs.
+            fs.rmSync(path.join(SVG_BASELINES_DIR, browserName), {recursive: true, force: true});
+        }
+
+        const compareWithBaseline = async (relPath: string, actual: PNG): Promise<void> => {
+            const baselinePath = path.join(SVG_BASELINES_DIR, browserName, relPath.replace(/\.html$/, '.png'));
+            if (!fs.existsSync(baselinePath)) {
+                baselineFailures.push(`${relPath}: missing baseline ${baselinePath} (listed in the manifest)`);
+                return;
+            }
+
+            const expected = PNG.sync.read(fs.readFileSync(baselinePath));
+            if (expected.width !== actual.width || expected.height !== actual.height) {
+                baselineFailures.push(
+                    `${relPath}: size mismatch (baseline ${expected.width}x${expected.height}, ` +
+                        `actual ${actual.width}x${actual.height})`
+                );
+                return;
+            }
+
+            const {width, height} = expected;
+            const diff = new PNG({width, height});
+            const diffPixels = pixelmatch(expected.data, actual.data, diff.data, width, height, {
+                threshold: PIXELMATCH_THRESHOLD
+            });
+            const diffRatio = diffPixels / (width * height);
+            if (diffRatio > MAX_DIFF_PIXEL_RATIO) {
+                const slug = relPath.replace(/[/.]/g, '-');
+                const actualPath = testInfo.outputPath(`${slug}-actual.png`);
+                const diffPath = testInfo.outputPath(`${slug}-diff.png`);
+                fs.mkdirSync(path.dirname(actualPath), {recursive: true});
+                fs.writeFileSync(actualPath, PNG.sync.write(actual));
+                fs.writeFileSync(diffPath, PNG.sync.write(diff));
+                await testInfo.attach(`${slug}-actual`, {path: actualPath, contentType: 'image/png'});
+                await testInfo.attach(`${slug}-diff`, {path: diffPath, contentType: 'image/png'});
+                baselineFailures.push(
+                    `${relPath}: ${diffPixels} of ${width * height} pixels differ ` +
+                        `(${(diffRatio * 100).toFixed(3)}%, allowed ${MAX_DIFF_PIXEL_RATIO * 100}%)`
+                );
+            }
+        };
 
         const entries: ScorecardEntry[] = [];
         for (const relPath of reftests) {
@@ -214,9 +297,26 @@ if (SCORECARD_ENGINE) {
 
             const entry: ScorecardEntry = {path: relPath, ssim: 0};
             try {
-                entry.ssim = await scorePage(page, urlPath, engine);
+                const {ssim: score, actual} = await scorePage(page, urlPath, engine);
+                entry.ssim = score;
+
+                if (UPDATE_SVG_BASELINES && score >= SVG_BASELINE_SSIM_THRESHOLD) {
+                    const baselinePath = path.join(
+                        SVG_BASELINES_DIR,
+                        browserName,
+                        relPath.replace(/\.html$/, '.png')
+                    );
+                    fs.mkdirSync(path.dirname(baselinePath), {recursive: true});
+                    fs.writeFileSync(baselinePath, PNG.sync.write(actual));
+                    updatedBaselines.push(relPath);
+                } else if (baselined.has(relPath)) {
+                    await compareWithBaseline(relPath, actual);
+                }
             } catch (e) {
                 entry.error = e instanceof Error ? e.message : String(e);
+                if (baselined.has(relPath)) {
+                    baselineFailures.push(`${relPath}: capture failed (${entry.error})`);
+                }
             }
             entries.push(entry);
             // eslint-disable-next-line no-console
@@ -239,6 +339,24 @@ if (SCORECARD_ENGINE) {
         fs.mkdirSync(REPORTS_DIR, {recursive: true});
         const reportPath = path.join(REPORTS_DIR, `${engine}-scorecard-${browserName}.json`);
         fs.writeFileSync(reportPath, JSON.stringify(scorecard, null, 2) + '\n');
+
+        if (UPDATE_SVG_BASELINES) {
+            const newManifest: SvgBaselineManifest = {
+                engine: 'svg',
+                browser: browserName,
+                ssimThreshold: SVG_BASELINE_SSIM_THRESHOLD,
+                tests: updatedBaselines
+            };
+            fs.mkdirSync(path.dirname(svgManifestPath(browserName)), {recursive: true});
+            fs.writeFileSync(svgManifestPath(browserName), JSON.stringify(newManifest, null, 2) + '\n');
+        } else if (manifest) {
+            expect(baselineFailures, `svg baseline regressions:\n${baselineFailures.join('\n')}`).toEqual([]);
+        } else if (svgBaselines) {
+            throw new Error(
+                `Missing svg baseline manifest ${svgManifestPath(browserName)}. ` +
+                    `Run with UPDATE_SVG_BASELINES=1 to create it.`
+            );
+        }
 
         expect(entries.length).toBeGreaterThan(0);
     });

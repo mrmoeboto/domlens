@@ -104,11 +104,11 @@ describe('CaptureResult', () => {
         expect(canvas.toBlob).toHaveBeenCalledWith(expect.any(Function), 'image/png', undefined);
     });
 
-    it('should expose svg markup for svg output and refuse toCanvas', () => {
+    it('should expose svg markup and refuse toCanvas for svg output without a rasterized canvas', () => {
         const output: EngineOutput = {kind: 'svg', markup: '<svg/>', width: 1, height: 1};
         const result = new CaptureResult(output, makeContext());
         expect(result.toSvg()).toBe('<svg/>');
-        expect(() => result.toCanvas()).toThrow('not available for svg output');
+        expect(() => result.toCanvas()).toThrow('not available for un-rasterized svg output');
     });
 
     it('should rasterize svg output once at the configured scale for raster exports', async () => {
@@ -116,10 +116,31 @@ describe('CaptureResult', () => {
         const result = new CaptureResult(output, makeContext({output: {scale: 2}}));
 
         expect(await result.toPng()).toBe('data:image/png;base64,SVGRASTER');
-        expect(rasterizeSvg).toHaveBeenCalledWith('<svg/>', {width: 10, height: 20, scale: 2});
+        expect(rasterizeSvg).toHaveBeenCalledWith('<svg/>', {width: 10, height: 20, scale: 2, allowTaint: false});
 
         await result.toJpeg();
         // The rasterization is cached across formats.
         expect(rasterizeSvg).toHaveBeenCalledTimes(1);
+    });
+
+    it('should reuse the canvas the svg engine rasterized during render', async () => {
+        vi.mocked(rasterizeSvg).mockClear();
+        const canvas = makeCanvas();
+        const output: EngineOutput = {
+            kind: 'svg',
+            markup: '<svg/>',
+            width: 10,
+            height: 20,
+            canvas: canvas as unknown as HTMLCanvasElement
+        };
+        const result = new CaptureResult(output, makeContext());
+
+        // toCanvas is synchronous for svg output that carries the rasterized canvas...
+        expect(result.toCanvas()).toBe(canvas as unknown as HTMLCanvasElement);
+        // ...the markup stays available...
+        expect(result.toSvg()).toBe('<svg/>');
+        // ...and raster exports encode from it without rasterizing again.
+        expect(await result.toPng()).toBe('data:image/png;base64,AAAA');
+        expect(rasterizeSvg).not.toHaveBeenCalled();
     });
 });

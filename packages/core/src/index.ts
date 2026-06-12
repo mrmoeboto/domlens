@@ -26,6 +26,7 @@ export {inlineExternalResources} from './engines/svg/resource-inliner';
 export type {CloneStyleInliner} from './clone/document-cloner';
 export {selectEngine, executeCapture} from './engines/select';
 export type {EngineFactory, EngineRegistry, CaptureStages} from './engines/select';
+export {TaintError, isSecurityError} from './engines/taint-error';
 export type {
     CaptureEngine,
     ClonedTree,
@@ -64,8 +65,10 @@ if (typeof window !== 'undefined') {
 
 const engines: EngineRegistry = {
     canvas: () => new CanvasEngine(),
-    // Available via `engine: 'svg'`; 'auto' keeps resolving to canvas until the svg engine
-    // beats the canvas engine's fidelity scorecard (see engines/select.ts).
+    // The default: `engine: 'auto'` prefers the svg engine when foreignObject drawing is
+    // supported, with automatic canvas-engine fallback on render/taint failures (see
+    // engines/select.ts). The svg engine cleared the canvas engine's fidelity scorecard
+    // (Phase 3 exit criteria), flipping 'auto' to svg-first.
     svg: () => new SvgEngine()
 };
 

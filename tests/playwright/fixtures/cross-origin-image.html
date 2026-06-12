@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>cross-origin image fixture (no CORS headers)</title>
+        <style>
+            body {
+                margin: 0;
+            }
+            #target {
+                width: 400px;
+                height: 250px;
+                background: #fff;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="target">
+            <!--
+                The CORS test server's root (port 8081) serves tests/ WITHOUT CORS headers,
+                so this image loads but taints any canvas it is drawn onto.
+            -->
+            <img src="http://localhost:8081/assets/image.jpg" width="300" height="200" alt="" />
+        </div>
+    </body>
+</html>

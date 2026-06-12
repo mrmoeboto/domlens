@@ -15,7 +15,17 @@ export interface ClonedTree {
 
 export type EngineOutput =
     | {kind: 'canvas'; canvas: HTMLCanvasElement; width: number; height: number}
-    | {kind: 'svg'; markup: string; width: number; height: number};
+    | {
+          kind: 'svg';
+          markup: string;
+          width: number;
+          height: number;
+          /**
+           * Canvas the svg engine rasterized (and taint-probed) during render; reused by
+           * CaptureResult so exports do not rasterize again.
+           */
+          canvas?: HTMLCanvasElement;
+      };
 
 export interface EngineSupportResult {
     ok: boolean;

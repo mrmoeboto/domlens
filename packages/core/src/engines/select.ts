@@ -1,4 +1,5 @@
 import type {CaptureContext} from '../capture-context';
+import {TaintError} from './taint-error';
 import type {CaptureEngine, ClonedTree, EngineOutput} from './types';
 
 export type EngineFactory = () => CaptureEngine;
@@ -11,24 +12,35 @@ export interface EngineRegistry {
 
 /**
  * Engine selection policy:
- * - explicit `engine: 'canvas' | 'svg'` uses that engine (error when unavailable, no support
- *   pre-check — render failures of a non-canvas engine still auto-fall back to canvas),
- * - `engine: 'auto'` resolves to the canvas engine for now. The flip to svg-first (with
- *   support check + fallback) is gated on the svg engine clearing the canvas engine's
- *   fidelity scorecard (Phase 3 exit criteria).
+ * - explicit `engine: 'canvas' | 'svg'` uses that engine (error when not registered, no
+ *   support pre-check — render failures of a non-canvas engine still auto-fall back to
+ *   canvas),
+ * - `engine: 'auto'` prefers the svg engine when it is registered and its support check
+ *   (foreignObject drawing feature detection) passes, and resolves to the canvas engine
+ *   otherwise. Render/taint failures of the svg engine fall back to the canvas engine in
+ *   {@link executeCapture}.
  */
 export const selectEngine = async (context: CaptureContext, registry: EngineRegistry): Promise<CaptureEngine> => {
     const requested = context.options.engine;
 
     if (requested === 'svg') {
         if (!registry.svg) {
-            throw new Error(`svg engine not yet available`);
+            throw new Error(`svg engine requested but not registered`);
         }
         return registry.svg();
     }
 
     if (requested === 'auto' && registry.svg) {
-        context.logger.debug(`auto engine: svg engine registered but not yet the default; using canvas engine`);
+        const svg = registry.svg();
+        try {
+            const support = await svg.supports(context);
+            if (support.ok) {
+                return svg;
+            }
+            context.logger.debug(`auto engine: svg engine not supported (${support.reason}); using canvas engine`);
+        } catch (e) {
+            context.logger.debug(`auto engine: svg support check failed (${e}); using canvas engine`);
+        }
     }
 
     return registry.canvas();
@@ -72,7 +84,13 @@ const runEngine = async (
         return output;
     } catch (e) {
         if (allowFallback) {
-            context.logger.warn(`${engine.name} engine failed (${e}); falling back to canvas engine`);
+            if (e instanceof TaintError) {
+                context.logger.warn(
+                    `${engine.name} engine output would be tainted (${e.message}); falling back to canvas engine`
+                );
+            } else {
+                context.logger.warn(`${engine.name} engine failed (${e}); falling back to canvas engine`);
+            }
             return FALLBACK;
         }
         throw e;
@@ -83,9 +101,10 @@ const runEngine = async (
 
 /**
  * Selects an engine and runs the clone → hooks → render stages with the auto-fallback
- * policy: when a non-canvas engine throws during render (or a `beforeRender` plugin
- * signals `{fallback: true}`), the pipeline re-enters at the clone stage with the canvas
- * engine (engines need different clone configurations, so the clone runs again).
+ * policy: when a non-canvas engine throws during render (including a {@link TaintError}
+ * from the svg taint probe / resource inliner) or a `beforeRender` plugin signals
+ * `{fallback: true}`, the pipeline re-enters at the clone stage with the canvas engine
+ * (engines need different clone configurations, so the clone runs again).
  */
 export const executeCapture = async (
     context: CaptureContext,

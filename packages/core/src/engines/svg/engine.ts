@@ -5,13 +5,16 @@ import {parseBackgroundColor} from '../canvas/engine';
 import {CaptureContext} from '../../capture-context';
 import {CaptureEngine, ClonedTree, EngineCloneConfig, EngineOutput, EngineSupportResult} from '../types';
 import {inlineExternalResources} from './resource-inliner';
+import {rasterizeSvg} from './rasterize';
 import {serializeToSvg} from './serializer';
 import {StyleInliner} from './style-inliner';
 
 /**
  * The SVG foreignObject engine: serializes the computed-style-inlined clone into
- * `<svg><foreignObject>` markup and lets the browser paint it. Rasterization to canvas
- * happens lazily in {@link CaptureResult} (see rasterize.ts).
+ * `<svg><foreignObject>` markup and lets the browser paint it. The markup is rasterized
+ * eagerly here (see rasterize.ts) so the render fails — and the pipeline can fall back to
+ * the canvas engine — when the svg does not load or the taint probe trips; the rasterized
+ * canvas rides along in the output and is reused by {@link CaptureResult}.
  *
  * Style fidelity comes from the default-diffing computed-style inliner (style-inliner.ts)
  * driven by the clone stage, plus the resource inliner that rewrites every external
@@ -29,7 +32,8 @@ export class SvgEngine implements CaptureEngine {
     };
 
     async supports(context: CaptureContext): Promise<EngineSupportResult> {
-        const ok = await context.env.SUPPORT_FOREIGNOBJECT_DRAWING;
+        // The detection promise can reject (e.g. no 2d canvas context at all).
+        const ok = await Promise.resolve(context.env.SUPPORT_FOREIGNOBJECT_DRAWING).catch(() => false);
         return ok ? {ok: true} : {ok: false, reason: 'foreignObject drawing is not supported in this environment'};
     }
 
@@ -72,6 +76,16 @@ export class SvgEngine implements CaptureEngine {
             backgroundColor: isTransparent(backgroundColor) ? undefined : asString(backgroundColor)
         });
 
-        return {kind: 'svg', markup, width: outputWidth, height: outputHeight};
+        // Rasterize while the engine can still fail over: a markup that does not load as an
+        // image or trips the taint probe must throw here (executeCapture falls back to the
+        // canvas engine), not later in a CaptureResult export.
+        const canvas = await rasterizeSvg(markup, {
+            width: outputWidth,
+            height: outputHeight,
+            scale: output.scale,
+            allowTaint: context.options.resources.allowTaint
+        });
+
+        return {kind: 'svg', markup, width: outputWidth, height: outputHeight, canvas};
     }
 }

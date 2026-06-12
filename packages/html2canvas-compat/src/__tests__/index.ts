@@ -4,7 +4,23 @@ import html2canvas from '../index';
 import {CanvasRenderer} from '../../../core/src/engines/canvas/render/canvas/canvas-renderer';
 import {DocumentCloner} from '../../../core/src/clone/document-cloner';
 import {COLORS} from '../../../core/src/engines/canvas/css/types/color';
-import {Logger} from '../../../core/src/logger';
+
+// Stub svg engine: jsdom cannot run the real one (no layout, no image loading). It renders
+// to a recognizable rasterized canvas so the foreignObjectRendering wiring is observable.
+const {svgRasterCanvas} = vi.hoisted(() => ({svgRasterCanvas: {} as HTMLCanvasElement}));
+
+vi.mock('../../../core/src/engines/svg/engine', () => ({
+    SvgEngine: class {
+        readonly name = 'svg';
+        readonly cloneConfig = {inlineImages: true, copyStyles: false};
+        supports() {
+            return Promise.resolve({ok: true});
+        }
+        render() {
+            return Promise.resolve({kind: 'svg', markup: '<svg/>', width: 1, height: 1, canvas: svgRasterCanvas});
+        }
+    }
+}));
 
 vi.mock('../../../core/src/logger');
 vi.mock('../../../core/src/engines/canvas/css/layout/bounds');
@@ -104,22 +120,15 @@ describe('html2canvas (compat)', () => {
         expect(clonedDocument.defaultView).toMatchObject({pageXOffset: 12, pageYOffset: 34});
     });
 
-    it('should log the documented error and still render with the canvas engine for foreignObjectRendering: true', async () => {
-        // Stage B semantics: the experimental foreignObject renderer was removed and the svg
-        // engine is not available yet, so the compat layer logs an error and renders with the
-        // canvas engine instead of selecting (and failing on) the svg engine.
-        const errorSpy = vi.spyOn(Logger.prototype, 'error');
+    it('should render with the svg engine and return its rasterized canvas for foreignObjectRendering: true', async () => {
         DocumentCloner.destroy = vi.fn().mockReturnValue(true);
+        const canvasRendererCalls = vi.mocked(CanvasRenderer).mock.calls.length;
 
-        const canvas = {} as HTMLCanvasElement;
-        await html2canvas(element, {foreignObjectRendering: true, canvas});
+        const canvas = await html2canvas(element, {foreignObjectRendering: true});
 
-        expect(errorSpy).toHaveBeenCalledWith(
-            `The foreignObjectRendering option is no longer supported; falling back to canvas rendering`
-        );
-        expect(CanvasRenderer).toHaveBeenLastCalledWith(expect.anything(), expect.objectContaining({canvas}));
+        expect(canvas).toBe(svgRasterCanvas);
+        // The svg engine rendered; the canvas engine was not involved.
+        expect(vi.mocked(CanvasRenderer).mock.calls.length).toBe(canvasRendererCalls);
         expect(DocumentCloner.destroy).toBeCalled();
-
-        errorSpy.mockRestore();
     });
 });

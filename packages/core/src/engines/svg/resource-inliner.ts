@@ -1,5 +1,6 @@
 import {isCanvasElement, isImageElement} from '../canvas/dom/node-parser';
 import {CaptureContext} from '../../capture-context';
+import {isSecurityError, TaintError} from '../taint-error';
 
 const XLINK_NS = 'http://www.w3.org/1999/xlink';
 
@@ -13,8 +14,11 @@ const isDataUrl = (url: string): boolean => url.indexOf('data:') === 0;
 /**
  * Loads a resource url through the shared image cache (which implements the CORS /
  * allowTaint / proxy policy) and re-encodes it as a png data url via a scratch canvas.
- * Returns null when the resource cannot be loaded or would taint the canvas — callers
- * leave the original reference in place in that case.
+ * Returns null when the resource cannot be loaded — callers leave the original reference
+ * in place in that case. Throws a typed {@link TaintError} when the resource loaded but
+ * reading it back taints the scratch canvas (cross-origin image without CORS): the svg
+ * engine cannot embed such a resource at all, so the capture must fall back to the canvas
+ * engine, which implements the legacy taint behavior.
  */
 const loadAsDataUrl = async (url: string, context: CaptureContext): Promise<string | null> => {
     try {
@@ -45,6 +49,9 @@ const loadAsDataUrl = async (url: string, context: CaptureContext): Promise<stri
         ctx.drawImage(img, 0, 0, width, height);
         return canvas.toDataURL();
     } catch (e) {
+        if (isSecurityError(e)) {
+            throw new TaintError(`inlining ${url.substring(0, 256)} would taint the canvas: ${e}`);
+        }
         context.logger.debug(`Unable to inline resource ${url.substring(0, 256)}: ${e}`);
         return null;
     }
@@ -140,7 +147,11 @@ const replaceCanvasWithImage = (canvas: HTMLCanvasElement): void => {
     try {
         dataUrl = canvas.toDataURL();
     } catch (e) {
-        // tainted canvas: nothing we can serialize
+        if (isSecurityError(e)) {
+            // Tainted canvas: nothing the svg engine can serialize; fall back to the
+            // canvas engine, which draws (and taints with) the live canvas directly.
+            throw new TaintError(`cloned <canvas> is tainted and cannot be serialized: ${e}`);
+        }
         return;
     }
 
@@ -158,7 +169,8 @@ const replaceCanvasWithImage = (canvas: HTMLCanvasElement): void => {
  * serialized svg renders self-contained (svg-as-image must not load external resources):
  * img src, svg <image> href, canvases (replaced by imgs) and url() references written by
  * the style inliner (background-image, border-image-source, list-style-image, ...).
- * Resources that cannot be loaded keep their original reference.
+ * Resources that cannot be loaded keep their original reference; resources that would
+ * taint a canvas on extraction throw a {@link TaintError} (canvas-engine fallback).
  */
 export const inlineExternalResources = async (root: Element, context: CaptureContext): Promise<void> => {
     const loaded = new Map<string, Promise<string | null>>();

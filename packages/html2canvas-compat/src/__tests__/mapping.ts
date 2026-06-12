@@ -46,7 +46,7 @@ describe('classic option mapping', () => {
         expect(get(normalize(classic))).toBe(expected);
     });
 
-    it('always selects the canvas engine (no auto-fallback in compat)', () => {
+    it('selects the canvas engine by default (no auto-fallback in compat)', () => {
         expect(normalize({}).engine).toBe('canvas');
         expect(normalize({foreignObjectRendering: false}).engine).toBe('canvas');
     });
@@ -83,14 +83,17 @@ describe('classic option mapping', () => {
         expect((mapClassicOptions({}).plugins ?? []).find((p) => p.name === 'classic-onclone')).toBeUndefined();
     });
 
-    it('keeps the canvas engine for foreignObjectRendering: true and registers the error plugin (stage B semantics)', () => {
+    it('maps foreignObjectRendering: true onto the svg engine', () => {
         const mapped = mapClassicOptions({foreignObjectRendering: true});
 
-        expect(mapped.engine).toBe('canvas');
-        expect((mapped.plugins ?? []).map((p) => p.name)).toContain('classic-foreign-object-rendering');
+        expect(mapped.engine).toBe('svg');
+        // The stage-B "no longer supported" error-log plugin is gone: the svg engine is the
+        // real foreignObject renderer now.
+        expect((mapped.plugins ?? []).map((p) => p.name)).not.toContain('classic-foreign-object-rendering');
     });
 
-    it('does not register the foreignObjectRendering plugin by default', () => {
+    it('keeps the canvas engine for foreignObjectRendering: false', () => {
+        expect(mapClassicOptions({foreignObjectRendering: false}).engine).toBe('canvas');
         expect((mapClassicOptions({}).plugins ?? []).map((p) => p.name)).not.toContain(
             'classic-foreign-object-rendering'
         );

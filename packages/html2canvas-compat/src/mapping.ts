@@ -50,25 +50,15 @@ export interface Options {
 
 /**
  * Maps the classic option names onto the normalized @domlens/core schema. Behavior is
- * unchanged from html2canvas 1.4.1: the compat layer always renders with the canvas
- * engine (no auto-fallback), `onclone`/`ignoreElements` become an afterClone plugin and
- * an inverted `filter`, and `foreignObjectRendering` (whose experimental renderer was
- * removed) logs an error and renders with the canvas engine instead.
+ * unchanged from html2canvas 1.4.1: the compat layer renders with the canvas engine by
+ * default (no auto-fallback, preserving pixel behavior), and `onclone`/`ignoreElements`
+ * become an afterClone plugin and an inverted `filter`. `foreignObjectRendering: true`
+ * selects the svg foreignObject engine — the modern successor of the removed v1
+ * experimental renderer — which still falls back to the canvas engine when its render
+ * fails (matching the v1 "if the browser supports it" semantics).
  */
 export const mapClassicOptions = (opts: Partial<Options>): CaptureOptions => {
     const plugins: Plugin[] = [];
-
-    if (opts.foreignObjectRendering ?? false) {
-        plugins.push({
-            name: 'classic-foreign-object-rendering',
-            beforeClone: (context) =>
-                // The experimental foreignObject renderer was removed; the svg engine replacing it
-                // arrives in a later phase. Render with the canvas engine in the meantime.
-                context.logger.error(
-                    `The foreignObjectRendering option is no longer supported; falling back to canvas rendering`
-                )
-        });
-    }
 
     const onclone = opts.onclone;
     if (typeof onclone === 'function') {
@@ -81,7 +71,7 @@ export const mapClassicOptions = (opts: Partial<Options>): CaptureOptions => {
     const ignoreElements = opts.ignoreElements;
 
     return {
-        engine: 'canvas',
+        engine: (opts.foreignObjectRendering ?? false) ? 'svg' : 'canvas',
         output: {
             scale: opts.scale,
             width: opts.width,
