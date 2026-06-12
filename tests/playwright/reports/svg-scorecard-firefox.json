@@ -4,12 +4,12 @@
   "summary": {
     "total": 94,
     "captured": 94,
-    "pct90": 79.8
+    "pct90": 95.7
   },
   "tests": [
     {
       "path": "acid2.html",
-      "ssim": 0.9678841600607094
+      "ssim": 0.9620137943957456
     },
     {
       "path": "animation.html",
@@ -21,7 +21,7 @@
     },
     {
       "path": "background/clip.html",
-      "ssim": 0.7734914979262194
+      "ssim": 1
     },
     {
       "path": "background/encoded.html",
@@ -37,15 +37,15 @@
     },
     {
       "path": "background/multi.html",
-      "ssim": 0.8115310630591116
+      "ssim": 1
     },
     {
       "path": "background/origin.html",
-      "ssim": 0.6883368989018591
+      "ssim": 1
     },
     {
       "path": "background/position.html",
-      "ssim": 0.7265623089378034
+      "ssim": 1
     },
     {
       "path": "background/radial-gradient.html",
@@ -57,11 +57,11 @@
     },
     {
       "path": "background/repeat.html",
-      "ssim": 0.7627882529757062
+      "ssim": 1
     },
     {
       "path": "background/size.html",
-      "ssim": 0.4568771279790491
+      "ssim": 0.9999584678209853
     },
     {
       "path": "border/dashed.html",
@@ -81,7 +81,7 @@
     },
     {
       "path": "border/radius.html",
-      "ssim": 0.7627012332835944
+      "ssim": 1
     },
     {
       "path": "border/solid.html",
@@ -101,7 +101,7 @@
     },
     {
       "path": "forms.html",
-      "ssim": 0.818936555995808
+      "ssim": 0.6717962459399257
     },
     {
       "path": "iframe.html",
@@ -109,7 +109,7 @@
     },
     {
       "path": "images/base.html",
-      "ssim": 0.7993154548194036
+      "ssim": 0.9999596325839823
     },
     {
       "path": "images/canvas.html",
@@ -117,11 +117,11 @@
     },
     {
       "path": "images/cross-origin.html",
-      "ssim": 0.7249819998330707
+      "ssim": 0.9999616852807091
     },
     {
       "path": "images/doctype.html",
-      "ssim": 0.9713077083404454
+      "ssim": 0.9897303352951036
     },
     {
       "path": "images/empty.html",
@@ -129,7 +129,7 @@
     },
     {
       "path": "images/images.html",
-      "ssim": 0.4528020742107117
+      "ssim": 0.9999975425709332
     },
     {
       "path": "images/svg/base64.html",
@@ -137,7 +137,7 @@
     },
     {
       "path": "images/svg/external.html",
-      "ssim": 0.7506125568769325
+      "ssim": 0.9999615599776216
     },
     {
       "path": "images/svg/inline.html",
@@ -145,7 +145,7 @@
     },
     {
       "path": "images/svg/native_only.html",
-      "ssim": 0.826045767721257
+      "ssim": 0.9999676507243167
     },
     {
       "path": "images/svg/node.html",
@@ -153,7 +153,7 @@
     },
     {
       "path": "images/video.html",
-      "ssim": 0.7876035778065963
+      "ssim": 0.8958761886788825
     },
     {
       "path": "list/decimal-leading-zero.html",
@@ -165,7 +165,7 @@
     },
     {
       "path": "list/liststyle.html",
-      "ssim": 0.9644267645443061
+      "ssim": 1
     },
     {
       "path": "list/lower-alpha.html",
@@ -177,7 +177,7 @@
     },
     {
       "path": "options/crop-2.html",
-      "ssim": 0.8842958460011265
+      "ssim": 1
     },
     {
       "path": "options/crop.html",
@@ -213,15 +213,15 @@
     },
     {
       "path": "overflow/overflow.html",
-      "ssim": 0.9787080612347434
+      "ssim": 1
     },
     {
       "path": "pseudo-content.html",
-      "ssim": 0.979430180145878
+      "ssim": 0.9906552121777785
     },
     {
       "path": "pseudoelements.html",
-      "ssim": 0.9245213762515396
+      "ssim": 1
     },
     {
       "path": "text/child-textnodes.html",
@@ -265,7 +265,7 @@
     },
     {
       "path": "text/text.html",
-      "ssim": 1
+      "ssim": 0.9943701678810188
     },
     {
       "path": "text/textarea.html",
@@ -289,7 +289,7 @@
     },
     {
       "path": "transform/rotate.html",
-      "ssim": 0.8343653084071094
+      "ssim": 0.9999990698831854
     },
     {
       "path": "transform/translate.html",
@@ -301,7 +301,7 @@
     },
     {
       "path": "webcomponents/webcomponents.html",
-      "ssim": 0.9736267554184389
+      "ssim": 0.9986491417203369
     },
     {
       "path": "zindex/z-index1.html",
@@ -309,7 +309,7 @@
     },
     {
       "path": "zindex/z-index10.html",
-      "ssim": 1
+      "ssim": 0.9262024098553199
     },
     {
       "path": "zindex/z-index11.html",
@@ -333,7 +333,7 @@
     },
     {
       "path": "zindex/z-index16.html",
-      "ssim": 0.8464790933133655
+      "ssim": 1
     },
     {
       "path": "zindex/z-index17.html",

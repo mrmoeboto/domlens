@@ -18,6 +18,12 @@ export {serializeToSvg} from './engines/svg/serializer';
 export type {SerializeConfig} from './engines/svg/serializer';
 export {loadSerializedSVG, rasterizeSvg} from './engines/svg/rasterize';
 export type {RasterizeConfig} from './engines/svg/rasterize';
+export {StyleInliner, materializeFormState, applyScrollShift} from './engines/svg/style-inliner';
+export {DefaultStyleCache, diffComputedStyle} from './engines/svg/default-styles';
+export type {DefaultStyleMap, StyleDeclarationLike} from './engines/svg/default-styles';
+export {inlinePseudoStyles, PSEUDO_ELEMENT_TAG} from './engines/svg/pseudo';
+export {inlineExternalResources} from './engines/svg/resource-inliner';
+export type {CloneStyleInliner} from './clone/document-cloner';
 export {selectEngine, executeCapture} from './engines/select';
 export type {EngineFactory, EngineRegistry, CaptureStages} from './engines/select';
 export type {
@@ -116,10 +122,14 @@ const createCloneStages = (element: HTMLElement, context: CaptureContext): Captu
     clone: async (engine: CaptureEngine): Promise<ClonedTree> => {
         const {options, windowBounds} = context;
         const filter = options.filter;
+        // The style inliner lives only for the synchronous clone walk (the DocumentCloner
+        // constructor); its hidden default-styles iframe is removed again right after.
+        const styleInliner = engine.cloneConfig.createStyleInliner?.(element.ownerDocument as Document);
         const cloneOptions: CloneConfigurations = {
             allowTaint: options.resources.allowTaint,
             ignoreElements: filter ? (el: Element) => !filter(el) : undefined,
-            ...engine.cloneConfig
+            ...engine.cloneConfig,
+            styleInliner
         };
 
         context.logger.debug(
@@ -128,7 +138,12 @@ const createCloneStages = (element: HTMLElement, context: CaptureContext): Captu
             } scrolled to ${-windowBounds.left},${-windowBounds.top}`
         );
 
-        const documentCloner = new DocumentCloner(context.legacy, element, cloneOptions);
+        let documentCloner: DocumentCloner;
+        try {
+            documentCloner = new DocumentCloner(context.legacy, element, cloneOptions);
+        } finally {
+            styleInliner?.dispose();
+        }
         const clonedElement = documentCloner.clonedReferenceElement;
         if (!clonedElement) {
             return Promise.reject(`Unable to find element in cloned iframe`);

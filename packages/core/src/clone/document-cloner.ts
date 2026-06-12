@@ -4,6 +4,7 @@ import {
     isCanvasElement,
     isCustomElement,
     isElementNode,
+    isHTMLElement,
     isHTMLElementNode,
     isIFrameElement,
     isImageElement,
@@ -38,12 +39,33 @@ export interface WindowOptions {
     windowHeight: number;
 }
 
+/**
+ * Engine-owned style inlining seam (svg engine): when configured, the cloner calls these
+ * hooks — at the point where it has the (original, clone) pair and the computed styles in
+ * hand — instead of the legacy full computed-style copy. See engines/svg/style-inliner.ts.
+ */
+export interface CloneStyleInliner {
+    /** Inline an element's styles (and serializable state) onto its clone. */
+    element(original: Element, clone: HTMLElement | SVGElement, computed: CSSStyleDeclaration): void;
+    /** Inline a materialized ::before/::after pseudo element's styles. */
+    pseudo(host: Element, target: HTMLElement, computed: CSSStyleDeclaration): void;
+    /** Bake an element's scroll position into its clone (markup cannot carry scroll state). */
+    scrolled(original: Element, clone: HTMLElement | SVGElement): void;
+    /** Release helper resources (the hidden default-styles iframe). */
+    dispose(): void;
+}
+
 export type CloneConfigurations = CloneOptions & {
     inlineImages: boolean;
     copyStyles: boolean;
+    styleInliner?: CloneStyleInliner;
 };
 
 const IGNORE_ATTRIBUTE = 'data-html2canvas-ignore';
+
+const isStylesheetLinkElement = (element: Element): boolean =>
+    element.tagName === 'LINK' &&
+    (element.getAttribute('rel') ?? '').toLowerCase().split(/\s+/).indexOf('stylesheet') !== -1;
 
 export class DocumentCloner {
     private readonly scrolledElements: [Element, number, number][];
@@ -280,7 +302,15 @@ export class DocumentCloner {
                 !child.hasAttribute(IGNORE_ATTRIBUTE) &&
                 (typeof this.options.ignoreElements !== 'function' || !this.options.ignoreElements(child)))
         ) {
-            if (!this.options.copyStyles || !isElementNode(child) || !isStyleElement(child)) {
+            // With styles inlined (legacy copyStyles or the engine-owned style inliner),
+            // stylesheets must not ride along: in the inliner case they would double-apply
+            // against the inline styles. Linked stylesheets are only skipped for the
+            // inliner (legacy copyStyles kept them; its behavior stays untouched).
+            const skipStyles =
+                isElementNode(child) &&
+                ((this.options.copyStyles && isStyleElement(child)) ||
+                    (!!this.options.styleInliner && (isStyleElement(child) || isStylesheetLinkElement(child))));
+            if (!skipStyles) {
                 clone.appendChild(this.cloneNode(child, copyStyles));
             }
         }
@@ -351,7 +381,10 @@ export class DocumentCloner {
 
             this.counters.pop(counters);
 
-            if (
+            const styleInliner = this.options.styleInliner;
+            if (style && styleInliner && !isIFrameElement(node)) {
+                styleInliner.element(node, clone, style);
+            } else if (
                 (style && (this.options.copyStyles || isSVGElementNode(node)) && !isIFrameElement(node)) ||
                 copyStyles
             ) {
@@ -359,7 +392,13 @@ export class DocumentCloner {
             }
 
             if (node.scrollTop !== 0 || node.scrollLeft !== 0) {
-                this.scrolledElements.push([clone, node.scrollLeft, node.scrollTop]);
+                if (styleInliner && !isBodyElement(node) && !isHTMLElement(node)) {
+                    // Bake element scroll into the clone markup instead of restoring it on
+                    // the live clone document (which serialization would lose again).
+                    styleInliner.scrolled(node, clone);
+                } else {
+                    this.scrolledElements.push([clone, node.scrollLeft, node.scrollTop]);
+                }
             }
 
             if (
@@ -395,7 +434,11 @@ export class DocumentCloner {
         const declaration = new CSSParsedPseudoDeclaration(this.context, style);
 
         const anonymousReplacedElement = document.createElement('html2canvaspseudoelement');
-        copyCSSStyles(style, anonymousReplacedElement);
+        if (this.options.styleInliner) {
+            this.options.styleInliner.pseudo(node, anonymousReplacedElement, style);
+        } else {
+            copyCSSStyles(style, anonymousReplacedElement);
+        }
 
         declaration.content.forEach((token) => {
             if (token.type === TokenType.STRING_TOKEN) {

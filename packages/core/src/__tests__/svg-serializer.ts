@@ -104,10 +104,12 @@ describe('SvgEngine', () => {
     const stubContext = (foreignObject: boolean): CaptureContext =>
         ({env: {SUPPORT_FOREIGNOBJECT_DRAWING: Promise.resolve(foreignObject)}}) as unknown as CaptureContext;
 
-    it('should use the foreignObject-era clone configuration', () => {
+    it('should request inlined images and the engine-owned style inliner (no legacy copyStyles)', () => {
         const engine = new SvgEngine();
         expect(engine.name).toBe('svg');
-        expect(engine.cloneConfig).toEqual({inlineImages: true, copyStyles: true});
+        expect(engine.cloneConfig.inlineImages).toBe(true);
+        expect(engine.cloneConfig.copyStyles).toBe(false);
+        expect(typeof engine.cloneConfig.createStyleInliner).toBe('function');
     });
 
     it('should report support based on the foreignObject feature detect', async () => {

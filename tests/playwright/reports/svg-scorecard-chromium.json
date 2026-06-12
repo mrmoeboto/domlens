@@ -4,12 +4,12 @@
   "summary": {
     "total": 94,
     "captured": 94,
-    "pct90": 83
+    "pct90": 95.7
   },
   "tests": [
     {
       "path": "acid2.html",
-      "ssim": 0.9685657168032675
+      "ssim": 0.9645476871391352
     },
     {
       "path": "animation.html",
@@ -17,15 +17,15 @@
     },
     {
       "path": "background/box-shadow.html",
-      "ssim": 0.9990266121297046
+      "ssim": 0.9990647829567322
     },
     {
       "path": "background/clip.html",
-      "ssim": 0.8070527620875549
+      "ssim": 0.8994416816529427
     },
     {
       "path": "background/encoded.html",
-      "ssim": 0.9999966692797889
+      "ssim": 1
     },
     {
       "path": "background/linear-gradient.html",
@@ -33,19 +33,19 @@
     },
     {
       "path": "background/linear-gradient2.html",
-      "ssim": 0.9999927771803143
+      "ssim": 0.944668767427159
     },
     {
       "path": "background/multi.html",
-      "ssim": 0.8115310630591116
+      "ssim": 1
     },
     {
       "path": "background/origin.html",
-      "ssim": 0.6849016001379219
+      "ssim": 1
     },
     {
       "path": "background/position.html",
-      "ssim": 0.7270762952539226
+      "ssim": 0.9999998395690558
     },
     {
       "path": "background/radial-gradient.html",
@@ -53,15 +53,15 @@
     },
     {
       "path": "background/radial-gradient2.html",
-      "ssim": 0.9998108996186478
+      "ssim": 0.9999524081029099
     },
     {
       "path": "background/repeat.html",
-      "ssim": 0.7627882529757062
+      "ssim": 1
     },
     {
       "path": "background/size.html",
-      "ssim": 0.45700415357749985
+      "ssim": 0.9999957147096479
     },
     {
       "path": "border/dashed.html",
@@ -101,7 +101,7 @@
     },
     {
       "path": "forms.html",
-      "ssim": 0.9999044821952222
+      "ssim": 0.9041902563879579
     },
     {
       "path": "iframe.html",
@@ -109,7 +109,7 @@
     },
     {
       "path": "images/base.html",
-      "ssim": 0.682255464908774
+      "ssim": 0.9997580665133319
     },
     {
       "path": "images/canvas.html",
@@ -117,11 +117,11 @@
     },
     {
       "path": "images/cross-origin.html",
-      "ssim": 0.7437472635900377
+      "ssim": 0.9997047048334218
     },
     {
       "path": "images/doctype.html",
-      "ssim": 0.9714333784543272
+      "ssim": 0.9910387987172998
     },
     {
       "path": "images/empty.html",
@@ -129,7 +129,7 @@
     },
     {
       "path": "images/images.html",
-      "ssim": 0.4511063418000998
+      "ssim": 0.9999998164444519
     },
     {
       "path": "images/svg/base64.html",
@@ -137,7 +137,7 @@
     },
     {
       "path": "images/svg/external.html",
-      "ssim": 0.7675573596476699
+      "ssim": 0.999708674386161
     },
     {
       "path": "images/svg/inline.html",
@@ -145,15 +145,15 @@
     },
     {
       "path": "images/svg/native_only.html",
-      "ssim": 0.834651609125701
+      "ssim": 0.9982015306651741
     },
     {
       "path": "images/svg/node.html",
-      "ssim": 0.999898926848805
+      "ssim": 0.9998988228057256
     },
     {
       "path": "images/video.html",
-      "ssim": 0.7966294386335727
+      "ssim": 0.8830677582659485
     },
     {
       "path": "list/decimal-leading-zero.html",
@@ -165,7 +165,7 @@
     },
     {
       "path": "list/liststyle.html",
-      "ssim": 0.9646073191920898
+      "ssim": 0.9998233772703462
     },
     {
       "path": "list/lower-alpha.html",
@@ -209,19 +209,19 @@
     },
     {
       "path": "overflow/overflow-transform.html",
-      "ssim": 0.99983924401315
+      "ssim": 0.999839860176503
     },
     {
       "path": "overflow/overflow.html",
-      "ssim": 0.9719271468234711
+      "ssim": 0.9807547346971481
     },
     {
       "path": "pseudo-content.html",
-      "ssim": 0.9781410967553996
+      "ssim": 0.9913738090652267
     },
     {
       "path": "pseudoelements.html",
-      "ssim": 0.9295825885392137
+      "ssim": 0.9997712905793962
     },
     {
       "path": "text/child-textnodes.html",
@@ -229,15 +229,15 @@
     },
     {
       "path": "text/lang/chinese.html",
-      "ssim": 0.9987527049468129
+      "ssim": 0.9987529555275549
     },
     {
       "path": "text/lang/persian.html",
-      "ssim": 0.9998825004757835
+      "ssim": 0.9998825094959213
     },
     {
       "path": "text/lang/thai.html",
-      "ssim": 0.9982736375775743
+      "ssim": 0.9982738052474301
     },
     {
       "path": "text/line-break.html",
@@ -253,23 +253,23 @@
     },
     {
       "path": "text/overflow-wrap.html",
-      "ssim": 0.9993612830127111
+      "ssim": 0.9993614257274243
     },
     {
       "path": "text/shadow.html",
-      "ssim": 0.998417779700682
+      "ssim": 0.999025624685806
     },
     {
       "path": "text/stroke.html",
-      "ssim": 0.9995209016019536
+      "ssim": 0.9995224052258475
     },
     {
       "path": "text/text.html",
-      "ssim": 0.9990637928157914
+      "ssim": 0.9939855723858635
     },
     {
       "path": "text/textarea.html",
-      "ssim": 0.9560038216794281
+      "ssim": 0.9532323596383786
     },
     {
       "path": "text/underline-lineheight.html",
@@ -285,11 +285,11 @@
     },
     {
       "path": "transform/nested.html",
-      "ssim": 0.9997419177702371
+      "ssim": 0.999742303054878
     },
     {
       "path": "transform/rotate.html",
-      "ssim": 0.8288428082120503
+      "ssim": 0.9999970536000586
     },
     {
       "path": "transform/translate.html",
@@ -301,15 +301,15 @@
     },
     {
       "path": "webcomponents/webcomponents.html",
-      "ssim": 0.9731727759568524
+      "ssim": 0.9983347779810636
     },
     {
       "path": "zindex/z-index1.html",
-      "ssim": 0.9997446028531266
+      "ssim": 0.9997598275839165
     },
     {
       "path": "zindex/z-index10.html",
-      "ssim": 0.9995854719294129
+      "ssim": 0.9259525950628236
     },
     {
       "path": "zindex/z-index11.html",
@@ -333,7 +333,7 @@
     },
     {
       "path": "zindex/z-index16.html",
-      "ssim": 0.8471814766706304
+      "ssim": 0.999846210998097
     },
     {
       "path": "zindex/z-index17.html",
@@ -349,7 +349,7 @@
     },
     {
       "path": "zindex/z-index2.html",
-      "ssim": 0.9997317719851633
+      "ssim": 0.9997467472735572
     },
     {
       "path": "zindex/z-index20.html",
@@ -357,7 +357,7 @@
     },
     {
       "path": "zindex/z-index3.html",
-      "ssim": 0.9998657340380047
+      "ssim": 0.9998670491035142
     },
     {
       "path": "zindex/z-index4.html",
@@ -373,15 +373,15 @@
     },
     {
       "path": "zindex/z-index7.html",
-      "ssim": 0.9997168245170285
+      "ssim": 0.9997622179477752
     },
     {
       "path": "zindex/z-index8.html",
-      "ssim": 0.9998149725197839
+      "ssim": 0.9998213727239951
     },
     {
       "path": "zindex/z-index9.html",
-      "ssim": 0.9996558364209609
+      "ssim": 0.9997188230892079
     }
   ]
 }

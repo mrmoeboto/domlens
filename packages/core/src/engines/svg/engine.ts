@@ -4,24 +4,28 @@ import {isBodyElement, isHTMLElement} from '../canvas/dom/node-parser';
 import {parseBackgroundColor} from '../canvas/engine';
 import {CaptureContext} from '../../capture-context';
 import {CaptureEngine, ClonedTree, EngineCloneConfig, EngineOutput, EngineSupportResult} from '../types';
+import {inlineExternalResources} from './resource-inliner';
 import {serializeToSvg} from './serializer';
+import {StyleInliner} from './style-inliner';
 
 /**
  * The SVG foreignObject engine: serializes the computed-style-inlined clone into
  * `<svg><foreignObject>` markup and lets the browser paint it. Rasterization to canvas
  * happens lazily in {@link CaptureResult} (see rasterize.ts).
  *
- * Scaffold-stage fidelity: backgrounds/borders/text layout render through the browser;
- * external images, web fonts and CSS url() resources are not inlined yet, so they do not
- * load inside the svg image (Phase 3/4 work).
+ * Style fidelity comes from the default-diffing computed-style inliner (style-inliner.ts)
+ * driven by the clone stage, plus the resource inliner that rewrites every external
+ * img/background reference to a data url before serialization (svg-as-image must be
+ * self-contained). Web fonts and same-origin iframes are Phase 4 work.
  */
 export class SvgEngine implements CaptureEngine {
     readonly name = 'svg';
     readonly cloneConfig: EngineCloneConfig = {
-        // The foreignObject-era clone modes: inline canvas contents as data urls and copy
-        // computed styles inline (the svg image cannot run stylesheets against the live DOM).
+        // Inline canvas/video contents as data urls; styles are written inline by the
+        // engine-owned computed-style inliner instead of the legacy full-copy mode.
         inlineImages: true,
-        copyStyles: true
+        copyStyles: false,
+        createStyleInliner: (ownerDocument: Document) => new StyleInliner(ownerDocument)
     };
 
     async supports(context: CaptureContext): Promise<EngineSupportResult> {
@@ -34,17 +38,21 @@ export class SvgEngine implements CaptureEngine {
         const legacyContext = context.legacy;
         const {output} = context.options;
 
+        const documentElement = ownerDocument.documentElement;
+        if (!documentElement) {
+            throw new Error('Cloned document has no document element to serialize');
+        }
+
+        // Inline external resources (img src, background url(), canvases) as data urls
+        // before measuring/serializing: svg-as-image cannot load external references.
+        await inlineExternalResources(documentElement, context);
+
         const {width, height, left, top} =
             isBodyElement(clonedElement) || isHTMLElement(clonedElement)
                 ? parseDocumentSize(ownerDocument)
                 : parseBounds(legacyContext, clonedElement);
 
         const backgroundColor = parseBackgroundColor(legacyContext, clonedElement, output.backgroundColor);
-
-        const documentElement = ownerDocument.documentElement;
-        if (!documentElement) {
-            throw new Error('Cloned document has no document element to serialize');
-        }
 
         const outputWidth = output.width ?? Math.ceil(width);
         const outputHeight = output.height ?? Math.ceil(height);

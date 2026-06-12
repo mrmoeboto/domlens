@@ -1,4 +1,5 @@
 import type {CaptureContext} from '../capture-context';
+import type {CloneStyleInliner} from '../clone/document-cloner';
 
 export type EngineName = 'svg' | 'canvas';
 
@@ -25,6 +26,12 @@ export interface EngineSupportResult {
 export interface EngineCloneConfig {
     inlineImages: boolean;
     copyStyles: boolean;
+    /**
+     * Engine-owned computed-style inliner the clone stage should drive (svg engine). The
+     * clone stage creates it per capture against the captured element's document and
+     * disposes it after the clone walk.
+     */
+    createStyleInliner?: (ownerDocument: Document) => CloneStyleInliner;
 }
 
 export interface CaptureEngine {
