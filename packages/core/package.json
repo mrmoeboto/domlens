@@ -6,6 +6,9 @@
   "module": "dist/domlens.esm.js",
   "typings": "dist/types/index.d.ts",
   "browser": "dist/domlens.js",
+  "files": [
+    "dist"
+  ],
   "version": "1.4.1",
   "author": {
     "name": "Niklas von Hertzen",

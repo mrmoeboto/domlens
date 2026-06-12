@@ -6,6 +6,9 @@
   "module": "dist/html2canvas.esm.js",
   "typings": "dist/types/index.d.ts",
   "browser": "dist/html2canvas.js",
+  "files": [
+    "dist"
+  ],
   "version": "1.4.1",
   "author": {
     "name": "Niklas von Hertzen",
