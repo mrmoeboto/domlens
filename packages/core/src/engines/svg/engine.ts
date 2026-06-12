@@ -4,6 +4,7 @@ import {isBodyElement, isHTMLElement} from '../canvas/dom/node-parser';
 import {parseBackgroundColor} from '../canvas/engine';
 import {CaptureContext} from '../../capture-context';
 import {CaptureEngine, ClonedTree, EngineCloneConfig, EngineOutput, EngineSupportResult} from '../types';
+import {embedWebFonts} from './fonts';
 import {inlineExternalResources} from './resource-inliner';
 import {rasterizeSvg} from './rasterize';
 import {serializeToSvg} from './serializer';
@@ -19,7 +20,8 @@ import {StyleInliner} from './style-inliner';
  * Style fidelity comes from the default-diffing computed-style inliner (style-inliner.ts)
  * driven by the clone stage, plus the resource inliner that rewrites every external
  * img/background reference to a data url before serialization (svg-as-image must be
- * self-contained). Web fonts and same-origin iframes are Phase 4 work.
+ * self-contained) and the web font embedder that re-emits the used @font-face rules with
+ * data url sources (fonts.ts). Same-origin iframes are Phase 4 work.
  */
 export class SvgEngine implements CaptureEngine {
     readonly name = 'svg';
@@ -51,6 +53,17 @@ export class SvgEngine implements CaptureEngine {
         // before measuring/serializing: svg-as-image cannot load external references.
         await inlineExternalResources(documentElement, context);
 
+        // Embed the web fonts the cloned tree uses as @font-face rules with data: url
+        // sources (fonts.ts): rule discovery runs against the source document (the clone
+        // carries no stylesheets — styles are inlined), usage detection against the clone.
+        // The container iframe lives in the source document, which the tree does not
+        // reference directly.
+        const sourceDocument = tree.container.ownerDocument;
+        const fontCss =
+            context.options.fonts.embed && sourceDocument
+                ? await embedWebFonts(sourceDocument, documentElement, context)
+                : '';
+
         const {width, height, left, top} =
             isBodyElement(clonedElement) || isHTMLElement(clonedElement)
                 ? parseDocumentSize(ownerDocument)
@@ -73,7 +86,8 @@ export class SvgEngine implements CaptureEngine {
             height: outputHeight,
             left: output.x + left,
             top: output.y + top,
-            backgroundColor: isTransparent(backgroundColor) ? undefined : asString(backgroundColor)
+            backgroundColor: isTransparent(backgroundColor) ? undefined : asString(backgroundColor),
+            fontCss: fontCss || undefined
         });
 
         // Rasterize while the engine can still fail over: a markup that does not load as an

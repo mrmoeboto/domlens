@@ -38,6 +38,12 @@ export interface SerializeConfig {
     top: number;
     /** CSS background color painted behind the content; omit to keep the svg transparent. */
     backgroundColor?: string;
+    /**
+     * CSS injected as a `<style>` element inside the svg — @font-face rules with data: url
+     * sources (see fonts.ts), so text in the foreignObject renders with its web fonts when
+     * the markup is loaded as a self-contained image.
+     */
+    fontCss?: string;
 }
 
 /**
@@ -61,6 +67,16 @@ export const serializeToSvg = (node: Node, config: SerializeConfig): string => {
     svg.setAttributeNS(null, 'width', width.toString());
     svg.setAttributeNS(null, 'height', height.toString());
     svg.setAttributeNS(null, 'viewBox', `0 0 ${width} ${height}`);
+
+    if (config.fontCss) {
+        // Embedded fonts must precede the content so the style is parsed before layout of
+        // the foreignObject subtree. Style elements inside svg apply to the whole document,
+        // including the XHTML content of foreignObject.
+        const style = document.createElementNS(SVG_NS, 'style');
+        style.setAttributeNS(null, 'type', 'text/css');
+        style.textContent = config.fontCss;
+        svg.appendChild(style);
+    }
 
     if (config.backgroundColor) {
         const rect = document.createElementNS(SVG_NS, 'rect');

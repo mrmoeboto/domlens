@@ -66,6 +66,23 @@ describe('serializeToSvg', () => {
         expect(transparent.getElementsByTagNameNS(SVG_NS, 'rect')).toHaveLength(0);
     });
 
+    it('should inject embedded font css as a style element before the content', () => {
+        const node = document.createElement('div');
+        const fontCss = '@font-face { font-family: "Karla"; src: url("data:font/woff2;base64,QUJD"); }';
+        const markup = serializeToSvg(node, {width: 10, height: 10, left: 0, top: 0, fontCss});
+
+        const svg = parse(markup);
+        const style = svg.getElementsByTagNameNS(SVG_NS, 'style')[0];
+        expect(style).toBeDefined();
+        expect(style.textContent).toBe(fontCss);
+        // the style must precede the foreignObject so fonts apply to its content
+        const foreignObject = svg.getElementsByTagNameNS(SVG_NS, 'foreignObject')[0];
+        expect(style.compareDocumentPosition(foreignObject) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+        const plain = parse(serializeToSvg(node, {width: 10, height: 10, left: 0, top: 0}));
+        expect(plain.getElementsByTagNameNS(SVG_NS, 'style')).toHaveLength(0);
+    });
+
     it('should not detach the serialized node from its tree', () => {
         const parent = document.createElement('section');
         const node = document.createElement('div');

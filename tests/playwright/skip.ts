@@ -15,5 +15,15 @@ export interface SkipEntry {
 export const SKIPPED_REFTESTS: Record<string, SkipEntry> = {
     'text/fontawesome.html': {
         reason: 'Depends on the FontAwesome CDN (use.fontawesome.com); network access is not deterministic/available in CI.'
+    },
+    // New Phase 4 pages without committed baselines yet (baselines/** is frozen between
+    // integrate runs). Covered by tests/playwright/webfont.spec.ts (svg engine, SSIM vs
+    // native screenshot); remove these entries when the integrate stage regenerates the
+    // canvas baselines and svg manifests.
+    'text/webfont.html': {
+        reason: 'Pending baseline regeneration (integrate stage); verified by webfont.spec.ts meanwhile.'
+    },
+    'text/webfont-unicode-range.html': {
+        reason: 'Pending baseline regeneration (integrate stage); verified by webfont.spec.ts meanwhile.'
     }
 };

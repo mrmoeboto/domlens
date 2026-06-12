@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Web font unicode-range pruning</title>
+    <style>
+        /* One family, two faces with disjoint unicode-ranges. The page text is latin only,
+           so the svg engine must embed the Karla face and prune the (visually distinct)
+           Lobster face that is mapped to the greek range — its bytes must not appear in
+           the serialized svg markup (asserted by tests/playwright/webfont.spec.ts). */
+        @font-face {
+            font-family: 'RangeProbe';
+            font-style: normal;
+            font-weight: 400;
+            src: url('../../assets/fonts/karla-latin-400-normal.woff2') format('woff2');
+            unicode-range: U+0000-00FF;
+        }
+        @font-face {
+            font-family: 'RangeProbe';
+            font-style: normal;
+            font-weight: 400;
+            src: url('../../assets/fonts/lobster-latin-400-normal.woff2') format('woff2');
+            unicode-range: U+0370-03FF;
+        }
+
+        body {
+            margin: 0;
+            padding: 24px;
+            font-family: 'RangeProbe', sans-serif;
+            font-size: 26px;
+            line-height: 1.6;
+            background: #ffffff;
+            color: #102030;
+        }
+    </style>
+</head>
+<body>
+    <div>Latin text only: sphinx of black quartz, judge my vow</div>
+    <div>MORE LATIN IN CAPS 0123456789</div>
+</body>
+</html>
