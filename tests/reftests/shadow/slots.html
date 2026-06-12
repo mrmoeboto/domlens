@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Shadow DOM: slotted and fallback content</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #ffffff;
+        }
+    </style>
+</head>
+<body>
+    <div id="host">
+        <span slot="title">Slotted title from the light DOM</span>
+        <p>Default-slotted paragraph one.</p>
+        <p>Default-slotted paragraph two.</p>
+    </div>
+    <script>
+        const root = document.getElementById('host').attachShadow({mode: 'open'});
+        root.innerHTML = `
+            <style>
+                .wrap {
+                    border: 2px dashed purple;
+                    padding: 10px;
+                    width: 400px;
+                }
+                ::slotted(span) { color: crimson; font-weight: bold; font-size: 18px; }
+                ::slotted(p) { margin: 4px 0; color: #006400; }
+                .shadow-note { color: #555555; font-size: 12px; margin: 8px 0 0; }
+            </style>
+            <div class="wrap">
+                <slot name="title">FALLBACK TITLE (must not appear)</slot>
+                <slot></slot>
+                <slot name="unassigned"><em style="color: #b8860b;">Fallback content of an unassigned slot</em></slot>
+                <p class="shadow-note">Shadow-owned note below the slots.</p>
+            </div>
+        `;
+    </script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Shadow DOM: open root with internal styles</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #ffffff;
+        }
+        .light {
+            color: navy;
+            margin: 0 0 12px;
+        }
+        #host {
+            font-style: italic; /* inherits into the shadow tree */
+        }
+    </style>
+</head>
+<body>
+    <p class="light">Light DOM content before the shadow host</p>
+    <div id="host"></div>
+    <p class="light">Light DOM content after the shadow host</p>
+    <script>
+        const root = document.getElementById('host').attachShadow({mode: 'open'});
+        root.innerHTML = `
+            <style>
+                :host {
+                    display: block;
+                    border: 3px solid teal;
+                    padding: 10px;
+                    background: #f0fff0;
+                }
+                .title {
+                    font-size: 20px;
+                    font-weight: bold;
+                    color: teal;
+                    margin: 0 0 8px;
+                    font-style: normal;
+                }
+                p { margin: 4px 0; color: #333333; }
+                .box {
+                    width: 120px;
+                    height: 40px;
+                    background: orange;
+                    border-radius: 6px;
+                }
+            </style>
+            <p class="title">Shadow content title</p>
+            <p>Paragraph styled by a shadow stylesheet, italic via inheritance from the host.</p>
+            <div class="box"></div>
+        `;
+    </script>
+</body>
+</html>

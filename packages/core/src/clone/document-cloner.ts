@@ -51,6 +51,24 @@ export interface CloneStyleInliner {
     pseudo(host: Element, target: HTMLElement, computed: CSSStyleDeclaration): void;
     /** Bake an element's scroll position into its clone (markup cannot carry scroll state). */
     scrolled(original: Element, clone: HTMLElement | SVGElement): void;
+    /**
+     * Replace a form control with a painted equivalent before cloning (Firefox does not
+     * paint native form widgets inside foreignObject rasterization). Return null to keep
+     * the regular clone.
+     */
+    formControl?(original: Element): HTMLElement | null;
+    /**
+     * Inline an expanded same-origin iframe's own box styles (border, size, viewport
+     * background, ...) onto the container element that replaces it in the clone.
+     */
+    frame?(original: HTMLIFrameElement, container: HTMLElement, computed: CSSStyleDeclaration): void;
+    /**
+     * Draw a video's current frame onto its canvas clone (letterboxed like the browser
+     * paints video content), or mark the canvas for asynchronous materialization (poster /
+     * CORS re-fetch) when the frame is unavailable or would taint. Returns the canvas to
+     * use as the clone (a fresh one when drawing tainted the original).
+     */
+    video?(original: HTMLVideoElement, canvas: HTMLCanvasElement): HTMLCanvasElement;
     /** Release helper resources (the hidden default-styles iframe). */
     dispose(): void;
 }
@@ -175,6 +193,17 @@ export class DocumentCloner {
             return this.createStyleClone(node);
         }
 
+        const styleInliner = this.options.styleInliner;
+        if (styleInliner) {
+            if (isIFrameElement(node)) {
+                return this.createInlinedIFrameClone(node);
+            }
+            const control = styleInliner.formControl?.(node);
+            if (control) {
+                return control;
+            }
+        }
+
         const clone = node.cloneNode(false) as T;
         if (isImageElement(clone)) {
             if (isImageElement(node) && node.currentSrc && node.currentSrc !== node.src) {
@@ -192,6 +221,33 @@ export class DocumentCloner {
         }
 
         return clone;
+    }
+
+    /**
+     * Engine-owned style inlining path: expands a same-origin iframe into a container div
+     * holding a recursive clone of the frame's document, since serialized svg markup
+     * cannot load nested browsing contexts. The container is sized/styled like the iframe
+     * box by {@link CloneStyleInliner.frame} later in the clone walk.
+     *
+     * Cross-origin frames stay a shallow iframe clone and render as an empty frame box —
+     * their content document is unreachable from script (documented limitation, matching
+     * what the canvas engine paints when it cannot parse the frame).
+     */
+    createInlinedIFrameClone(iframe: HTMLIFrameElement): HTMLElement {
+        let contentRoot: HTMLElement | null = null;
+        try {
+            contentRoot = iframe.contentDocument ? iframe.contentDocument.documentElement : null;
+        } catch (e) {
+            // Cross-origin frame: accessing contentDocument throws.
+        }
+
+        if (!contentRoot) {
+            return iframe.cloneNode(false) as HTMLElement;
+        }
+
+        const container = iframe.ownerDocument.createElement('div');
+        container.appendChild(this.cloneNode(contentRoot, false));
+        return container;
     }
 
     createCustomElementClone(node: HTMLElement): HTMLElement {
@@ -274,6 +330,15 @@ export class DocumentCloner {
 
         canvas.width = video.offsetWidth;
         canvas.height = video.offsetHeight;
+
+        const styleInliner = this.options.styleInliner;
+        if (styleInliner && styleInliner.video) {
+            // svg engine path: letterboxed first-frame draw with poster/CORS-refetch
+            // markers for the resource inliner (legacy stretch-draw below stays untouched
+            // for the canvas engine).
+            return styleInliner.video(video, canvas);
+        }
+
         const ctx = canvas.getContext('2d');
 
         try {
@@ -316,6 +381,17 @@ export class DocumentCloner {
         }
     }
 
+    /**
+     * Clones an element's rendered children. Open shadow roots are expanded into their
+     * light-DOM equivalent: the shadow content is cloned in place of the host's children,
+     * and every <slot> is materialized as the nodes assigned to it (or its fallback
+     * content when nothing is assigned). :host/::slotted styling needs no special casing —
+     * the computed styles the inliner writes already include it.
+     *
+     * Closed shadow roots cannot be expanded: `node.shadowRoot` is null by design, so the
+     * host renders as if it had no shadow tree (its light-DOM children, which the browser
+     * does not render either, are cloned instead). This is a documented limitation.
+     */
     cloneChildNodes(node: Element, clone: HTMLElement | SVGElement, copyStyles: boolean): void {
         for (
             let child = node.shadowRoot ? node.shadowRoot.firstChild : node.firstChild;
@@ -323,9 +399,17 @@ export class DocumentCloner {
             child = child.nextSibling
         ) {
             if (isElementNode(child) && isSlotElement(child) && typeof child.assignedNodes === 'function') {
+                // Materialize the slot per its current assignment. Fallback content (the
+                // slot's own children) renders only when nothing is assigned, which the
+                // `else` branch reproduces by cloning the slot element itself (display:
+                // contents is part of its inlined computed style).
                 const assignedNodes = child.assignedNodes() as ChildNode[];
                 if (assignedNodes.length) {
                     assignedNodes.forEach((assignedNode) => this.appendChildNode(clone, assignedNode, copyStyles));
+                } else if (this.options.styleInliner) {
+                    // Inliner path only: the legacy canvas clone dropped fallback content
+                    // entirely, and its committed baselines freeze that behavior.
+                    this.appendChildNode(clone, child, copyStyles);
                 }
             } else {
                 this.appendChildNode(clone, child, copyStyles);
@@ -346,6 +430,16 @@ export class DocumentCloner {
 
         if (window && isElementNode(node) && (isHTMLElementNode(node) || isSVGElementNode(node))) {
             const clone = this.createElementClone(node);
+            if (this.options.styleInliner) {
+                // The computed-style diff reproduces every inline declaration, so the
+                // cloned style attribute must not ride along: re-serializing the combined
+                // declarations corrupts the diffed longhands (Chromium collapses e.g.
+                // background-image + background-clip back into an ambiguous
+                // `background: url(..) border-box` shorthand, which shifts
+                // background-origin on reparse), and relative url() values in the original
+                // inline style would escape resource inlining.
+                clone.removeAttribute('style');
+            }
             clone.style.transitionProperty = 'none';
 
             const style = window.getComputedStyle(node);
@@ -366,7 +460,10 @@ export class DocumentCloner {
                 copyStyles = true;
             }
 
-            if (!isVideoElement(node)) {
+            // Expanded iframes (svg path) already carry their recursively cloned content
+            // document; the iframe's own children are fallback content and never render.
+            const isExpandedIFrame = !!this.options.styleInliner && isIFrameElement(node);
+            if (!isVideoElement(node) && !isExpandedIFrame) {
                 this.cloneChildNodes(node, clone, copyStyles);
             }
 
@@ -382,7 +479,13 @@ export class DocumentCloner {
             this.counters.pop(counters);
 
             const styleInliner = this.options.styleInliner;
-            if (style && styleInliner && !isIFrameElement(node)) {
+            if (style && styleInliner && isIFrameElement(node)) {
+                if (!isIFrameElement(clone)) {
+                    // Same-origin iframe expanded into a container div: inline the iframe
+                    // box's own styles (border, size, viewport background) onto it.
+                    styleInliner.frame?.(node, clone as HTMLElement, style);
+                }
+            } else if (style && styleInliner) {
                 styleInliner.element(node, clone, style);
             } else if (
                 (style && (this.options.copyStyles || isSVGElementNode(node)) && !isIFrameElement(node)) ||

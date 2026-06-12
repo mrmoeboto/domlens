@@ -25,5 +25,14 @@ export const SKIPPED_REFTESTS: Record<string, SkipEntry> = {
     },
     'text/webfont-unicode-range.html': {
         reason: 'Pending baseline regeneration (integrate stage); verified by webfont.spec.ts meanwhile.'
+    },
+    'shadow/simple.html': {
+        reason: 'Pending baseline regeneration (integrate stage); verified by svg-phase4.spec.ts meanwhile.'
+    },
+    'shadow/slots.html': {
+        reason: 'Pending baseline regeneration (integrate stage); verified by svg-phase4.spec.ts meanwhile.'
+    },
+    'shadow/nested.html': {
+        reason: 'Pending baseline regeneration (integrate stage); verified by svg-phase4.spec.ts meanwhile.'
     }
 };
