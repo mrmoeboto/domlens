@@ -1,17 +1,11 @@
 {
-  "title": "html2canvas",
-  "name": "html2canvas",
-  "description": "Screenshots with JavaScript",
-  "main": "dist/html2canvas.js",
-  "module": "dist/html2canvas.esm.js",
-  "typings": "dist/types/index.d.ts",
-  "browser": "dist/html2canvas.js",
+  "name": "html2canvas-monorepo",
+  "private": true,
   "version": "1.4.1",
-  "author": {
-    "name": "Niklas von Hertzen",
-    "email": "niklasvh@gmail.com",
-    "url": "https://hertzen.com"
-  },
+  "description": "Screenshots with JavaScript",
+  "workspaces": [
+    "packages/*"
+  ],
   "engines": {
     "node": ">=18.0.0"
   },
@@ -23,22 +17,18 @@
     "url": "https://github.com/niklasvh/html2canvas/issues"
   },
   "scripts": {
-    "build": "rimraf dist && rollup -c rollup.config.mjs && tsc -p tsconfig.build.json",
+    "build": "npm run build --workspace=@domlens/core",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src",
-    "format": "prettier --write \"{src,tests,scripts}/**/*.ts\"",
+    "lint": "eslint packages",
+    "format": "prettier --write \"{packages/*/src,tests,scripts}/**/*.ts\"",
     "test": "npm run lint && npm run typecheck && npm run unittest && npm run reftests",
     "unittest": "vitest run",
     "reftests": "playwright test",
-    "watch": "rollup -c rollup.config.mjs -w",
+    "watch": "npm run watch --workspace=@domlens/core",
     "start": "tsx tests/server.ts --port=8080 --cors=8081"
   },
   "homepage": "https://html2canvas.hertzen.com",
   "license": "MIT",
-  "dependencies": {
-    "css-line-break": "^2.1.0",
-    "text-segmentation": "^1.0.3"
-  },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.60.0",

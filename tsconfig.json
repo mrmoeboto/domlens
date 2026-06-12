@@ -15,5 +15,5 @@
         "resolveJsonModule": true,
         "noEmit": true
     },
-    "include": ["src"]
+    "include": ["packages/core/src"]
 }

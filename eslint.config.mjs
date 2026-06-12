@@ -9,8 +9,12 @@ export default tseslint.config(
     {
         // __tests__ / __mocks__ are being rewritten concurrently; exclude them from lint for now.
         ignores: [
-            'src/**/__tests__/**',
-            'src/**/__mocks__/**',
+            'packages/*/src/**/__tests__/**',
+            'packages/*/src/**/__mocks__/**',
+            'packages/*/dist/**',
+            // Build config files are not part of the typed lint project (matches the
+            // pre-workspace setup, where `eslint src` never saw rollup.config.mjs).
+            'packages/*/rollup.config.mjs',
             'dist/**',
             'build/**',
             'node_modules/**',
