@@ -6,16 +6,14 @@
         "noUnusedParameters": true,
         "strictNullChecks": true,
         "strictPropertyInitialization": true,
-        "types": ["node", "jest"],
-        "target": "es5",
-        "lib": ["es2015", "dom"],
+        "types": ["node"],
+        "target": "es2020",
+        "module": "esnext",
+        "moduleResolution": "bundler",
+        "lib": ["es2020", "dom"],
         "sourceMap": true,
-        "outDir": "dist/lib",
-        "declaration": true,
-        "declarationDir": "dist/types",
-        "resolveJsonModule": true
+        "resolveJsonModule": true,
+        "noEmit": true
     },
-    "include": [
-        "src"
-    ]
+    "include": ["src"]
 }

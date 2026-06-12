@@ -196,7 +196,7 @@ export class DocumentCloner {
         } catch (e) {
             // accessing node.sheet.cssRules throws a DOMException
             this.context.logger.error('Unable to access cssRules property', e);
-            if (e.name !== 'SecurityError') {
+            if ((e as Error).name !== 'SecurityError') {
                 throw e;
             }
         }
@@ -604,7 +604,7 @@ const restoreOwnerScroll = (ownerDocument: Document | null, x: number, y: number
     }
 };
 
-const restoreNodeScroll = ([element, x, y]: [HTMLElement, number, number]) => {
+const restoreNodeScroll = ([element, x, y]: [Element, number, number]) => {
     element.scrollLeft = x;
     element.scrollTop = y;
 };
