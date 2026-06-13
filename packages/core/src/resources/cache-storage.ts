@@ -33,6 +33,34 @@ export interface ResourceOptions {
     proxy?: string;
 }
 
+/**
+ * Persistent resource caches backing `resources.cache: 'full'`: one shared {@link Cache}
+ * per loading-policy signature (caches must not be shared across differing CORS/taint/proxy
+ * policies — the cached image element depends on how it was fetched), plus one shared map
+ * of data-url conversions for the svg engine's resource inliner. Both live until
+ * {@link clearSharedResourceCaches} (`resources.cache: 'disabled'`) or page unload.
+ */
+const sharedCaches = new Map<string, Cache>();
+const sharedDataUrls = new Map<string, Promise<string | null>>();
+
+export const sharedResourceCache = (context: Context, options: ResourceOptions): Cache => {
+    const key = `${options.useCORS}|${options.allowTaint}|${options.proxy ?? ''}|${options.imageTimeout}`;
+    let cache = sharedCaches.get(key);
+    if (!cache) {
+        cache = new Cache(context, options);
+        sharedCaches.set(key, cache);
+    }
+    return cache;
+};
+
+/** The shared data-url conversion cache (svg resource inliner, `cache: 'full'` captures). */
+export const sharedDataUrlCache = (): Map<string, Promise<string | null>> => sharedDataUrls;
+
+export const clearSharedResourceCaches = (): void => {
+    sharedCaches.clear();
+    sharedDataUrls.clear();
+};
+
 export class Cache {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private readonly _cache: {[key: string]: Promise<any>} = {};

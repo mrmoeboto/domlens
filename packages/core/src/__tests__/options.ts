@@ -19,7 +19,8 @@ describe('resolveOptions', () => {
             allowTaint: false,
             proxy: undefined,
             imageTimeout: 15000,
-            cache: undefined
+            cache: undefined,
+            cacheMode: 'soft'
         });
         expect(options.viewport).toEqual({width: 0, height: 0, scrollX: 0, scrollY: 0});
         expect(options.fonts).toEqual({embed: true, subset: false});
@@ -80,7 +81,25 @@ describe('resolveOptions', () => {
             allowTaint: true,
             proxy: 'http://proxy',
             imageTimeout: 100,
-            cache: undefined
+            cache: undefined,
+            cacheMode: 'soft'
         });
+    });
+
+    it('should normalize resource cache modes and instances', () => {
+        expect(resolveOptions({}).resources.cacheMode).toBe('soft');
+        expect(resolveOptions({}).resources.cache).toBeUndefined();
+
+        const full = resolveOptions({resources: {cache: 'full'}}).resources;
+        expect(full.cacheMode).toBe('full');
+        expect(full.cache).toBeUndefined();
+
+        expect(resolveOptions({resources: {cache: 'disabled'}}).resources.cacheMode).toBe('disabled');
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const instance = {addImage: () => Promise.resolve()} as any;
+        const explicit = resolveOptions({resources: {cache: instance}}).resources;
+        expect(explicit.cache).toBe(instance);
+        expect(explicit.cacheMode).toBe('soft');
     });
 });

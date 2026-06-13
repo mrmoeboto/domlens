@@ -4,7 +4,8 @@ import {Bounds} from './engines/canvas/css/layout/bounds';
 
 export type ContextOptions = {
     logging: boolean;
-    cache?: Cache;
+    /** Explicit cache instance, or a factory resolving one (shared-cache lookup). */
+    cache?: Cache | ((context: Context, options: ResourceOptions) => Cache);
 } & ResourceOptions;
 
 export class Context {
@@ -16,6 +17,7 @@ export class Context {
 
     constructor(options: ContextOptions, public windowBounds: Bounds) {
         this.logger = new Logger({id: this.instanceName, enabled: options.logging});
-        this.cache = options.cache ?? new Cache(this, options);
+        this.cache =
+            typeof options.cache === 'function' ? options.cache(this, options) : (options.cache ?? new Cache(this, options));
     }
 }

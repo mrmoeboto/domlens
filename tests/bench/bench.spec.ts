@@ -3,7 +3,11 @@
  *
  * For each scenario page under tests/bench/pages/ and each library, the harness loads the
  * page fresh in a single shared chromium instance, injects exactly one library bundle and
- * times `capture(document.body)` down to a rasterized canvas:
+ * times `capture(document.body)` down to a rasterized canvas with READABLE PIXELS — the
+ * timed region ends after a 1x1 getImageData, because canvases produced by drawing an
+ * svg image are rasterized lazily and a timing that stops at drawImage would credit
+ * libraries for work the browser merely deferred (domlens always pays it eagerly: its
+ * taint probe reads the canvas back as part of capture()):
  *
  *   domlens-svg / domlens-canvas / domlens-auto  -> domlens.capture(body, {engine})
  *       (the svg engine rasterizes eagerly during render, so capture() resolves with a
@@ -116,11 +120,16 @@ const loadScenario = async (page: Page, scenario: Scenario, bundle: Library['bun
 const timedCapture = (library: Library): string => `(async () => {
     const start = performance.now();
     const value = await (${library.capture});
-    const elapsed = performance.now() - start;
     const canvas = ${library.result === 'capture-result' ? 'value.toCanvas()' : 'value'};
     if (!(canvas instanceof HTMLCanvasElement) || canvas.width === 0 || canvas.height === 0) {
         throw new Error('capture did not produce a rasterized canvas');
     }
+    // Force the pixels: a canvas that came back from drawImage(svg) may not have been
+    // rasterized yet — browsers defer that work until the first readback/use. Without
+    // this, libraries that skip a taint probe report times that exclude the actual
+    // raster cost (it would silently hit the user's first toDataURL/getImageData).
+    canvas.getContext('2d').getImageData(0, 0, 1, 1);
+    const elapsed = performance.now() - start;
     return {elapsed, width: canvas.width, height: canvas.height};
 })()`;
 
@@ -211,7 +220,9 @@ test.describe('cross-library benchmark', () => {
             methodology: {
                 warmupRuns: WARMUP_RUNS,
                 timedRuns: TIMED_RUNS,
-                statistic: 'median (p10/p90 spread) of in-page performance.now() around capture-to-canvas',
+                statistic:
+                    'median (p10/p90 spread) of in-page performance.now() around capture-to-readable-canvas ' +
+                    '(timed region includes a 1x1 getImageData readback that realizes deferred svg rasterization)',
                 note: 'shared machine; deltas under ~25% should be treated as noise'
             },
             libraries: {[`${corePkg.name} (domlens)`]: corePkg.version as string, ...vendorVersions()},

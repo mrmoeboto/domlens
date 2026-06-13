@@ -1,5 +1,6 @@
 import {isCanvasElement, isImageElement} from '../canvas/dom/node-parser';
 import {CaptureContext} from '../../capture-context';
+import {sharedDataUrlCache} from '../../resources/cache-storage';
 import {isSecurityError, TaintError} from '../taint-error';
 
 const XLINK_NS = 'http://www.w3.org/1999/xlink';
@@ -322,11 +323,26 @@ const replaceCanvasWithImage = (canvas: HTMLCanvasElement): void => {
  */
 export const inlineExternalResources = async (root: Element, context: CaptureContext): Promise<void> => {
     const loaded = new Map<string, Promise<string | null>>();
+    // `resources.cache: 'full'`: data-url conversions (fetch + decode + re-encode, the
+    // expensive part of this pass) are reused across captures. Failures are not pinned —
+    // a transient error retries on the next capture.
+    const persistent = context.options.resources.cacheMode === 'full' ? sharedDataUrlCache() : null;
     const load: UrlLoader = (url: string) => {
-        let pending = loaded.get(url);
+        let pending = loaded.get(url) ?? persistent?.get(url);
         if (!pending) {
             pending = loadAsDataUrl(url, context);
             loaded.set(url, pending);
+            if (persistent) {
+                persistent.set(url, pending);
+                pending.then(
+                    (dataUrl) => {
+                        if (dataUrl === null) {
+                            persistent.delete(url);
+                        }
+                    },
+                    () => persistent.delete(url)
+                );
+            }
         }
         return pending;
     };

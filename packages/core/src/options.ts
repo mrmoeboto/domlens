@@ -4,6 +4,17 @@ import type {Cache} from './resources/cache-storage';
 export type EngineRequest = 'svg' | 'canvas' | 'auto';
 export type CorsMode = 'off' | 'anonymous' | 'use-credentials';
 
+/**
+ * Resource cache lifetime:
+ * - `'full'`: resources (loaded images, data-url conversions) are kept in a shared cache
+ *   that persists across captures — fastest for repeated captures of the same page, at the
+ *   cost of never observing changed resources behind unchanged URLs,
+ * - `'soft'` (default): resources are cached for the duration of a single capture,
+ * - `'disabled'`: like `'soft'`, but any persistent shared caches (from earlier `'full'`
+ *   captures) are cleared before the capture starts.
+ */
+export type ResourceCacheMode = 'full' | 'soft' | 'disabled';
+
 export interface OutputOptions {
     /** Device pixel ratio multiplier applied to the output. Defaults to the window's devicePixelRatio. */
     scale: number;
@@ -31,9 +42,16 @@ export interface ResourceLoadingOptions {
     proxy?: string;
     /** Timeout (ms) for loading an image resource; 0 disables the timeout. */
     imageTimeout: number;
-    /** Existing resource cache to share between captures. */
+    /** Explicit resource cache instance to share between captures (overrides `cacheMode`). */
     cache?: Cache;
+    /** Resource cache lifetime, see {@link ResourceCacheMode}. */
+    cacheMode: ResourceCacheMode;
 }
+
+/** User-facing resource options: `cache` also accepts a {@link ResourceCacheMode} keyword. */
+export type ResourceLoadingInput = Partial<Omit<ResourceLoadingOptions, 'cacheMode' | 'cache'>> & {
+    cache?: Cache | ResourceCacheMode;
+};
 
 export interface ViewportOptions {
     /** Viewport size used when rendering the cloned document. Defaults to the live window size. */
@@ -74,7 +92,7 @@ export interface NormalizedOptions {
 export interface CaptureOptions {
     engine?: EngineRequest;
     output?: Partial<OutputOptions>;
-    resources?: Partial<ResourceLoadingOptions>;
+    resources?: ResourceLoadingInput;
     filter?: (element: Element) => boolean;
     viewport?: Partial<ViewportOptions>;
     fonts?: Partial<FontOptions>;
@@ -94,6 +112,7 @@ export interface ViewportDefaults {
 
 export const resolveOptions = (input: CaptureOptions = {}, env: ViewportDefaults = {}): NormalizedOptions => {
     const debugInput = typeof input.debug === 'boolean' ? {logging: input.debug} : (input.debug ?? {});
+    const cacheInput = input.resources?.cache;
 
     return {
         engine: input.engine ?? 'auto',
@@ -111,7 +130,8 @@ export const resolveOptions = (input: CaptureOptions = {}, env: ViewportDefaults
             allowTaint: input.resources?.allowTaint ?? false,
             proxy: input.resources?.proxy,
             imageTimeout: input.resources?.imageTimeout ?? 15000,
-            cache: input.resources?.cache
+            cache: typeof cacheInput === 'object' ? cacheInput : undefined,
+            cacheMode: typeof cacheInput === 'string' ? cacheInput : 'soft'
         },
         filter: input.filter,
         viewport: {

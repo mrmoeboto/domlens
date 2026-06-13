@@ -687,12 +687,17 @@ const iframeLoader = (iframe: HTMLIFrameElement): Promise<HTMLIFrameElement> => 
 
         cloneWindow.onload = iframe.onload = () => {
             cloneWindow.onload = iframe.onload = null;
-            const interval = setInterval(() => {
-                if (documentClone.body.childNodes.length > 0 && documentClone.readyState === 'complete') {
-                    clearInterval(interval);
+            // Poll tightly: the document is adopted synchronously before close(), so the
+            // ready condition usually already holds when load fires — the legacy 50ms
+            // setInterval added a flat ~50ms to every capture for nothing.
+            const check = () => {
+                if (documentClone.body && documentClone.body.childNodes.length > 0 && documentClone.readyState === 'complete') {
                     resolve(iframe);
+                } else {
+                    setTimeout(check, 4);
                 }
-            }, 50);
+            };
+            check();
         };
     });
 };

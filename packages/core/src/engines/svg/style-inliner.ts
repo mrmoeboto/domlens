@@ -1,6 +1,12 @@
 import {isInputElement, isSelectElement, isTextareaElement} from '../canvas/dom/node-parser';
 import {CloneStyleInliner} from '../../clone/document-cloner';
-import {DefaultStyleCache, diffComputedStyle, StyleDeclarationLike} from './default-styles';
+import {
+    DefaultStyleCache,
+    diffStyleSnapshot,
+    snapshotComputedStyle,
+    StyleDeclarationLike,
+    StyleSnapshot
+} from './default-styles';
 import {inlinePseudoStyles, PSEUDO_ELEMENT_TAG} from './pseudo';
 import {drawContainedFrame, VIDEO_POSTER_ATTRIBUTE, VIDEO_SRC_ATTRIBUTE, VIDEO_TIME_ATTRIBUTE} from './resource-inliner';
 
@@ -410,18 +416,18 @@ export const applyScrollShift = (clone: HTMLElement | SVGElement, scrollLeft: nu
  */
 export class StyleInliner implements CloneStyleInliner {
     private readonly defaults: DefaultStyleCache;
-    private readonly computedStyles = new WeakMap<Element, StyleDeclarationLike>();
+    private readonly snapshots = new WeakMap<Element, StyleSnapshot>();
 
     constructor(ownerDocument: Document) {
         this.defaults = new DefaultStyleCache(ownerDocument);
     }
 
     element(original: Element, clone: HTMLElement | SVGElement, computed: CSSStyleDeclaration): void {
-        this.computedStyles.set(original, computed);
+        const snapshot = this.snapshotOf(original, computed) ?? snapshotComputedStyle(computed);
 
         const parent = original.parentElement;
-        const parentComputed = parent ? this.computedOf(parent) : null;
-        const diff = diffComputedStyle(computed, this.defaults.get(original), parentComputed);
+        const parentSnapshot = parent ? this.snapshotOf(parent) : null;
+        const diff = diffStyleSnapshot(snapshot, this.defaults.get(original), parentSnapshot);
 
         if (isCheckableInput(original) && !isInputElement(clone as Element)) {
             // The clone is the span this.formControl() materialized: paint the widget.
@@ -434,8 +440,16 @@ export class StyleInliner implements CloneStyleInliner {
             return;
         }
 
-        for (const [property, value] of diff) {
-            clone.style.setProperty(property, value);
+        // One cssText assignment instead of one setProperty per pair: the per-call style
+        // attribute maintenance dominates the clone walk on big trees. The prefix preserves
+        // the `transition-property: none` the cloner pinned (the diff may override it,
+        // exactly like the setProperty sequence did).
+        if (diff.length > 0) {
+            let cssText = 'transition-property: none;';
+            for (const [property, value] of diff) {
+                cssText += property + ':' + value + ';';
+            }
+            clone.style.cssText = cssText;
         }
 
         pinUsedSize(clone, computed);
@@ -481,15 +495,15 @@ export class StyleInliner implements CloneStyleInliner {
      * Scrollbars are not reproduced (the canvas engine does not paint them either).
      */
     frame(original: HTMLIFrameElement, container: HTMLElement, computed: CSSStyleDeclaration): void {
-        this.computedStyles.set(original, computed);
+        const snapshot = this.snapshotOf(original, computed) ?? snapshotComputedStyle(computed);
 
         const parent = original.parentElement;
-        const parentComputed = parent ? this.computedOf(parent) : null;
+        const parentSnapshot = parent ? this.snapshotOf(parent) : null;
 
-        for (const [property, value] of diffComputedStyle(
-            computed,
+        for (const [property, value] of diffStyleSnapshot(
+            snapshot,
             this.defaults.getByTag(container.tagName),
-            parentComputed
+            parentSnapshot
         )) {
             container.style.setProperty(property, value);
         }
@@ -557,7 +571,7 @@ export class StyleInliner implements CloneStyleInliner {
     }
 
     pseudo(host: Element, target: HTMLElement, computed: CSSStyleDeclaration): void {
-        inlinePseudoStyles(target, computed, this.computedOf(host), this.defaults.getByTag(PSEUDO_ELEMENT_TAG));
+        inlinePseudoStyles(target, computed, this.snapshotOf(host), this.defaults.getByTag(PSEUDO_ELEMENT_TAG));
     }
 
     scrolled(original: Element, clone: HTMLElement | SVGElement): void {
@@ -568,21 +582,29 @@ export class StyleInliner implements CloneStyleInliner {
         this.defaults.dispose();
     }
 
-    private computedOf(element: Element): StyleDeclarationLike | null {
-        const cached = this.computedStyles.get(element);
+    /**
+     * The element's computed-style snapshot, built at most once per element and capture:
+     * the clone walk is post-order (children before their parent), so an element is
+     * usually snapshotted when its first child needs it as the inheritance parent, and the
+     * snapshot is then reused by every sibling, by the element's own diff, and by its
+     * pseudo elements.
+     */
+    private snapshotOf(element: Element, computed?: CSSStyleDeclaration): StyleSnapshot | null {
+        const cached = this.snapshots.get(element);
         if (cached) {
             return cached;
         }
 
-        // ::before pseudos resolve before the host's own style hook runs; browsers return
-        // the same live declaration object for repeated getComputedStyle calls, so this
-        // does not recompute styles.
-        const view = element.ownerDocument && element.ownerDocument.defaultView;
-        if (!view) {
-            return null;
+        let declaration: CSSStyleDeclaration | undefined = computed;
+        if (!declaration) {
+            const view = element.ownerDocument && element.ownerDocument.defaultView;
+            if (!view) {
+                return null;
+            }
+            declaration = view.getComputedStyle(element);
         }
-        const computed = view.getComputedStyle(element);
-        this.computedStyles.set(element, computed);
-        return computed;
+        const snapshot = snapshotComputedStyle(declaration);
+        this.snapshots.set(element, snapshot);
+        return snapshot;
     }
 }

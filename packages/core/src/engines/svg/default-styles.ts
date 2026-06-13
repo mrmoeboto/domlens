@@ -189,18 +189,16 @@ const NON_INHERITED_PROPERTIES = new Set([
 const THREE_D_BORDER_STYLES = new Set(['inset', 'outset', 'groove', 'ridge']);
 
 /**
- * Border colors must stay inline when the border style is one of the 3D styles: browsers
- * paint an explicitly-set color differently from the initial currentcolor (Chromium uses
- * its themed gray bevel for the default), so "computed value equals the default" does not
- * imply "renders the same" for them.
+ * Whether a computed border-*-style value uses one of the 3D styles. Border colors must
+ * stay inline when it does: browsers paint an explicitly-set color differently from the
+ * initial currentcolor (Chromium uses its themed gray bevel for the default), so "computed
+ * value equals the default" does not imply "renders the same" for them.
  */
-const requiresExplicitBorderColor = (property: string, computed: StyleDeclarationLike): boolean => {
-    if (property.indexOf('border') !== 0 || property.indexOf('-color') !== property.length - 6) {
-        return false;
-    }
-    const style = computed.getPropertyValue(property.slice(0, -6) + '-style');
-    return style.split(/\s+/).some((value) => THREE_D_BORDER_STYLES.has(value));
-};
+const isThreeDBorderStyle = (style: string): boolean =>
+    style.split(/\s+/).some((value) => THREE_D_BORDER_STYLES.has(value));
+
+const isBorderColorProperty = (property: string): boolean =>
+    property.indexOf('border') === 0 && property.indexOf('-color') === property.length - 6;
 
 const isNonInheritedProperty = (property: string): boolean => {
     if (NON_INHERITED_EXCEPTIONS.has(property)) {
@@ -212,9 +210,70 @@ const isNonInheritedProperty = (property: string): boolean => {
 };
 
 /**
- * Diffs an element's computed style against its tag's default styles and (for inheritance)
- * its parent's computed style, returning only the property/value pairs that must be written
- * inline to reproduce the rendering without stylesheets:
+ * Diff behavior classes, resolved once per property name and cached for the lifetime of
+ * the page (the classification rules are static): the prefix scans in
+ * {@link isInheritedProperty}/{@link isNonInheritedProperty} are far too slow to re-run
+ * for every property of every node of a capture.
+ */
+const enum PropertyClass {
+    /** Custom property / ignored property: never written inline. */
+    SKIP,
+    /** border-*-color: kept inline whenever the matching border style is a 3D style. */
+    BORDER_COLOR,
+    INHERITED,
+    NON_INHERITED,
+    UNCLASSIFIED
+}
+
+const classificationCache = new Map<string, PropertyClass>();
+
+const classifyProperty = (property: string): PropertyClass => {
+    const cached = classificationCache.get(property);
+    if (cached !== undefined) {
+        return cached;
+    }
+
+    let classification: PropertyClass;
+    if (!property || property.indexOf('--') === 0 || IGNORED_PROPERTIES.has(property)) {
+        classification = PropertyClass.SKIP;
+    } else if (isBorderColorProperty(property)) {
+        classification = PropertyClass.BORDER_COLOR;
+    } else if (isInheritedProperty(property)) {
+        classification = PropertyClass.INHERITED;
+    } else if (isNonInheritedProperty(property)) {
+        classification = PropertyClass.NON_INHERITED;
+    } else {
+        classification = PropertyClass.UNCLASSIFIED;
+    }
+    classificationCache.set(property, classification);
+    return classification;
+};
+
+/**
+ * A plain snapshot of an element's computed style (custom properties excluded — computed
+ * longhand values already have `var()` references substituted). Snapshots are what the
+ * diff reads its parent ("inheritance reference") values from: reading a live
+ * CSSStyleDeclaration costs a style-engine call per property, while every element's values
+ * are needed once for its own diff and once per child — the snapshot makes those repeat
+ * reads plain map lookups.
+ */
+export type StyleSnapshot = Map<string, string>;
+
+export const snapshotComputedStyle = (computed: StyleDeclarationLike): StyleSnapshot => {
+    const snapshot: StyleSnapshot = new Map();
+    for (let i = 0, length = computed.length; i < length; i++) {
+        const property = computed.item(i);
+        if (property && !(property.charCodeAt(0) === 45 && property.charCodeAt(1) === 45)) {
+            snapshot.set(property, computed.getPropertyValue(property));
+        }
+    }
+    return snapshot;
+};
+
+/**
+ * Diffs an element's computed-style snapshot against its tag's default styles and (for
+ * inheritance) its parent's snapshot, returning only the property/value pairs that must be
+ * written inline to reproduce the rendering without stylesheets:
  *
  * - custom properties (`--*`) are skipped — computed longhand values already have `var()`
  *   references substituted, so the custom properties themselves carry no information,
@@ -224,39 +283,46 @@ const isNonInheritedProperty = (property: string): boolean => {
  * - unclassified properties are omitted only when tag default AND parent value agree, which
  *   is safe whether or not the property inherits.
  */
-export const diffComputedStyle = (
-    computed: StyleDeclarationLike,
+export const diffStyleSnapshot = (
+    snapshot: StyleSnapshot,
     defaults: DefaultStyleMap,
-    parentComputed: StyleDeclarationLike | null
+    parentSnapshot: StyleSnapshot | null
 ): Array<[string, string]> => {
     const result: Array<[string, string]> = [];
 
-    for (let i = 0; i < computed.length; i++) {
-        const property = computed.item(i);
-        if (!property || property.indexOf('--') === 0 || IGNORED_PROPERTIES.has(property)) {
-            continue;
-        }
-
-        const value = computed.getPropertyValue(property);
-
-        if (requiresExplicitBorderColor(property, computed)) {
-            result.push([property, value]);
-            continue;
-        }
-
-        if (isInheritedProperty(property)) {
-            const reference = parentComputed ? parentComputed.getPropertyValue(property) : defaults.get(property);
-            if (value === reference) {
+    for (const [property, value] of snapshot) {
+        switch (classifyProperty(property)) {
+            case PropertyClass.SKIP:
                 continue;
+            case PropertyClass.BORDER_COLOR:
+                if (isThreeDBorderStyle(snapshot.get(property.slice(0, -6) + '-style') ?? '')) {
+                    break;
+                }
+                // Not a 3D border: border colors are regular non-inherited properties.
+                if (value === defaults.get(property)) {
+                    continue;
+                }
+                break;
+            case PropertyClass.INHERITED: {
+                const reference = parentSnapshot ? parentSnapshot.get(property) : defaults.get(property);
+                if (value === reference) {
+                    continue;
+                }
+                break;
             }
-        } else if (value === defaults.get(property)) {
-            if (
-                !parentComputed ||
-                isNonInheritedProperty(property) ||
-                value === parentComputed.getPropertyValue(property)
-            ) {
-                continue;
-            }
+            case PropertyClass.NON_INHERITED:
+                if (value === defaults.get(property)) {
+                    continue;
+                }
+                break;
+            case PropertyClass.UNCLASSIFIED:
+                if (
+                    value === defaults.get(property) &&
+                    (!parentSnapshot || value === parentSnapshot.get(property))
+                ) {
+                    continue;
+                }
+                break;
         }
 
         result.push([property, value]);
@@ -264,6 +330,21 @@ export const diffComputedStyle = (
 
     return result;
 };
+
+/**
+ * {@link diffStyleSnapshot} for callers holding live (or test-stubbed) style declarations;
+ * the snapshot indirection is what makes repeated parent reads cheap, see above.
+ */
+export const diffComputedStyle = (
+    computed: StyleDeclarationLike,
+    defaults: DefaultStyleMap,
+    parentComputed: StyleDeclarationLike | null
+): Array<[string, string]> =>
+    diffStyleSnapshot(
+        snapshotComputedStyle(computed),
+        defaults,
+        parentComputed ? snapshotComputedStyle(parentComputed) : null
+    );
 
 const snapshot = (computed: CSSStyleDeclaration): DefaultStyleMap => {
     const map: DefaultStyleMap = new Map();

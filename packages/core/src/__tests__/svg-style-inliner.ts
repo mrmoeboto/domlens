@@ -198,7 +198,11 @@ describe('inlinePseudoStyles', () => {
         inlinePseudoStyles(
             target,
             decl({color: 'rgb(255, 0, 0)', display: 'inline', width: '12px'}),
-            decl({color: 'rgb(255, 0, 0)', display: 'block', width: '100px'}),
+            new Map([
+                ['color', 'rgb(255, 0, 0)'],
+                ['display', 'block'],
+                ['width', '100px']
+            ]),
             defaultsOf({display: 'inline', width: 'auto'})
         );
 

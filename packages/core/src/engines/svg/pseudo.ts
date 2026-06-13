@@ -1,4 +1,10 @@
-import {DefaultStyleMap, diffComputedStyle, StyleDeclarationLike} from './default-styles';
+import {
+    DefaultStyleMap,
+    diffStyleSnapshot,
+    snapshotComputedStyle,
+    StyleDeclarationLike,
+    StyleSnapshot
+} from './default-styles';
 
 /**
  * ::before/::after materialization for the svg engine.
@@ -24,10 +30,10 @@ export const PSEUDO_ELEMENT_TAG = 'html2canvaspseudoelement';
 export const inlinePseudoStyles = (
     target: HTMLElement,
     computed: StyleDeclarationLike,
-    hostComputed: StyleDeclarationLike | null,
+    hostSnapshot: StyleSnapshot | null,
     defaults: DefaultStyleMap
 ): void => {
-    for (const [property, value] of diffComputedStyle(computed, defaults, hostComputed)) {
+    for (const [property, value] of diffStyleSnapshot(snapshotComputedStyle(computed), defaults, hostSnapshot)) {
         target.style.setProperty(property, value);
     }
 };

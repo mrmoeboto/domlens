@@ -1,7 +1,13 @@
 import {afterEach, beforeEach, describe, it} from 'vitest';
 import {deepStrictEqual, fail} from 'assert';
 import {FEATURES} from '../../env/features';
-import {CacheStorage} from '../cache-storage';
+import {
+    Cache,
+    CacheStorage,
+    clearSharedResourceCaches,
+    sharedDataUrlCache,
+    sharedResourceCache
+} from '../cache-storage';
 import {Context} from '../../context';
 import {Bounds} from '../../engines/canvas/css/layout/bounds';
 
@@ -270,5 +276,51 @@ describe('cache-storage', () => {
             await cache.match('http://example.com/test.jpg');
             fail('Expected result to timeout');
         } catch (e) {}
+    });
+
+    describe('shared resource caches (cache: "full")', () => {
+        const options = {imageTimeout: 0, useCORS: false, allowTaint: false, proxy: undefined};
+
+        afterEach(() => clearSharedResourceCaches());
+
+        it('should resolve the same cache instance for the same loading policy', () => {
+            const context = createMockContext('http://example.com', {proxy: null});
+            const first = sharedResourceCache(context, options);
+            const second = sharedResourceCache(context, options);
+            deepStrictEqual(first === second, true);
+            deepStrictEqual(first instanceof Cache, true);
+        });
+
+        it('should keep caches per loading policy', () => {
+            const context = createMockContext('http://example.com', {proxy: null});
+            const plain = sharedResourceCache(context, options);
+            const cors = sharedResourceCache(context, {...options, useCORS: true});
+            deepStrictEqual(plain === cors, false);
+        });
+
+        it('should share loaded entries across contexts and reset on clear', async () => {
+            const context = createMockContext('http://example.com', {proxy: null});
+            const shared = sharedResourceCache(context, options);
+            await shared.addImage('http://example.com/shared.jpg');
+            deepStrictEqual(images.length, 1);
+
+            // A second "capture" resolving the shared cache sees the entry: no new load.
+            const again = sharedResourceCache(createMockContext('http://example.com', {proxy: null}), options);
+            await again.addImage('http://example.com/shared.jpg');
+            deepStrictEqual(images.length, 1);
+
+            clearSharedResourceCaches();
+            const fresh = sharedResourceCache(context, options);
+            deepStrictEqual(fresh === shared, false);
+            await fresh.addImage('http://example.com/shared.jpg');
+            deepStrictEqual(images.length, 2);
+        });
+
+        it('should expose a shared data-url cache that clears with the rest', () => {
+            sharedDataUrlCache().set('http://example.com/a.png', Promise.resolve('data:image/png;base64,x'));
+            deepStrictEqual(sharedDataUrlCache().size, 1);
+            clearSharedResourceCaches();
+            deepStrictEqual(sharedDataUrlCache().size, 0);
+        });
     });
 });

@@ -1,6 +1,6 @@
 import {Context} from './context';
 import {Logger} from './logger';
-import {Cache} from './resources/cache-storage';
+import {Cache, clearSharedResourceCaches, sharedResourceCache} from './resources/cache-storage';
 import {Bounds} from './engines/canvas/css/layout/bounds';
 import {FEATURES} from './env/features';
 import {NormalizedOptions} from './options';
@@ -26,10 +26,17 @@ export class CaptureContext {
         readonly options: NormalizedOptions,
         windowBounds: Bounds
     ) {
+        if (options.resources.cacheMode === 'disabled') {
+            clearSharedResourceCaches();
+        }
         this.legacy = new Context(
             {
                 logging: options.debug.logging,
-                cache: options.resources.cache,
+                // An explicit cache instance wins; 'full' resolves the shared persistent
+                // cache for this loading policy; 'soft'/'disabled' build a per-capture one.
+                cache:
+                    options.resources.cache ??
+                    (options.resources.cacheMode === 'full' ? sharedResourceCache : undefined),
                 imageTimeout: options.resources.imageTimeout,
                 useCORS: options.resources.cors !== 'off',
                 allowTaint: options.resources.allowTaint,
