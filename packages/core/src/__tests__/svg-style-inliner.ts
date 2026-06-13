@@ -1,5 +1,11 @@
 import {describe, expect, it} from 'vitest';
-import {DefaultStyleCache, DefaultStyleMap, diffComputedStyle, StyleDeclarationLike} from '../engines/svg/default-styles';
+import {
+    clearDefaultStyleCaches,
+    DefaultStyleCache,
+    DefaultStyleMap,
+    diffComputedStyle,
+    StyleDeclarationLike
+} from '../engines/svg/default-styles';
 import {applyScrollShift, materializeFormState} from '../engines/svg/style-inliner';
 import {inlinePseudoStyles} from '../engines/svg/pseudo';
 
@@ -178,6 +184,9 @@ describe('DefaultStyleCache', () => {
     });
 
     it('should create its sandbox iframe lazily and remove it on dispose', () => {
+        // The computed default maps persist across cache instances (per document); drop
+        // them so this instance must really probe (and thus create its sandbox iframe).
+        clearDefaultStyleCaches(document);
         const countIframes = () => document.querySelectorAll('iframe[data-html2canvas-ignore]').length;
         const before = countIframes();
 

@@ -1,5 +1,6 @@
 import {isInputElement, isSelectElement, isTextareaElement} from '../canvas/dom/node-parser';
 import {CloneStyleInliner} from '../../clone/document-cloner';
+import {AuthorStyleProfile, collectAuthorStyleProfile} from './author-styles';
 import {
     DefaultStyleCache,
     diffStyleSnapshot,
@@ -417,9 +418,20 @@ export const applyScrollShift = (clone: HTMLElement | SVGElement, scrollLeft: nu
 export class StyleInliner implements CloneStyleInliner {
     private readonly defaults: DefaultStyleCache;
     private readonly snapshots = new WeakMap<Element, StyleSnapshot>();
+    /**
+     * Author-style scan for pruned snapshots (see author-styles.ts): only the properties
+     * author CSS can have touched are read per element — UA styling reproduces itself in
+     * the serialized document. Null (inaccessible stylesheets, `all` declared) falls back
+     * to full snapshots, the pre-scan behavior.
+     */
+    private readonly authorProfile: AuthorStyleProfile | null;
 
     constructor(ownerDocument: Document) {
-        this.defaults = new DefaultStyleCache(ownerDocument);
+        this.authorProfile = collectAuthorStyleProfile(ownerDocument);
+        // The probe cache must resolve defaults for every property of the read set — some
+        // declarable longhands (background-position-x/y) are not enumerated by
+        // getComputedStyle and would otherwise never be droppable by the diff.
+        this.defaults = new DefaultStyleCache(ownerDocument, this.authorProfile?.propertyList ?? []);
     }
 
     element(original: Element, clone: HTMLElement | SVGElement, computed: CSSStyleDeclaration): void {
@@ -440,19 +452,43 @@ export class StyleInliner implements CloneStyleInliner {
             return;
         }
 
-        // One cssText assignment instead of one setProperty per pair: the per-call style
-        // attribute maintenance dominates the clone walk on big trees. The prefix preserves
-        // the `transition-property: none` the cloner pinned (the diff may override it,
-        // exactly like the setProperty sequence did).
-        if (diff.length > 0) {
-            let cssText = 'transition-property: none;';
-            for (const [property, value] of diff) {
-                cssText += property + ':' + value + ';';
-            }
-            clone.style.cssText = cssText;
+        // One setAttribute instead of one setProperty per pair: per-call style attribute
+        // maintenance dominates the clone walk on big trees, and the raw attribute string
+        // also serializes compactly (CSSOM round-trips re-expand `p:v;` to `p: v; ` and
+        // recombine longhands into shorthands). The used-size pins (see pinUsedSize) are
+        // folded into the same string for the same reason. Transitions are frozen only
+        // where the author declared any (transition-duration read != initial): a static
+        // serialized document never starts transitions by itself, so the blanket pin the
+        // cloner writes for the canvas engine is dropped with the rest of the attribute.
+        let cssText = '';
+        let hasWidth = false;
+        let hasHeight = false;
+        for (const [property, value] of diff) {
+            cssText += property + ':' + value + ';';
+            hasWidth = hasWidth || property === 'width';
+            hasHeight = hasHeight || property === 'height';
         }
-
-        pinUsedSize(clone, computed);
+        if (!hasWidth) {
+            const width = computed.getPropertyValue('width');
+            if (width && width !== 'auto') {
+                cssText += 'width:' + width + ';';
+            }
+        }
+        if (!hasHeight) {
+            const height = computed.getPropertyValue('height');
+            if (height && height !== 'auto') {
+                cssText += 'height:' + height + ';';
+            }
+        }
+        const transitionDuration = snapshot.get('transition-duration');
+        if (transitionDuration && transitionDuration !== '0s') {
+            cssText += 'transition-property:none;';
+        }
+        if (cssText) {
+            clone.setAttribute('style', cssText);
+        } else {
+            clone.removeAttribute('style');
+        }
 
         if (FORM_CONTROL_TAGS.has(original.tagName)) {
             pinControlFont(clone, computed);
@@ -495,7 +531,10 @@ export class StyleInliner implements CloneStyleInliner {
      * Scrollbars are not reproduced (the canvas engine does not paint them either).
      */
     frame(original: HTMLIFrameElement, container: HTMLElement, computed: CSSStyleDeclaration): void {
-        const snapshot = this.snapshotOf(original, computed) ?? snapshotComputedStyle(computed);
+        // Always a FULL snapshot: the container tag (div) differs from the original
+        // (iframe), so "UA styling reproduces itself" does not hold — the iframe's UA
+        // border/background must be diffed against the div defaults property by property.
+        const snapshot = snapshotComputedStyle(computed);
 
         const parent = original.parentElement;
         const parentSnapshot = parent ? this.snapshotOf(parent) : null;
@@ -603,7 +642,13 @@ export class StyleInliner implements CloneStyleInliner {
             }
             declaration = view.getComputedStyle(element);
         }
-        const snapshot = snapshotComputedStyle(declaration);
+
+        // Pruned snapshot when the author-style scan applies; elements with
+        // Web-Animations-API animations carry computed values with no stylesheet trace
+        // and are snapshot fully.
+        const profile = this.authorProfile;
+        const propertyList = profile && !profile.animated.has(element) ? profile.propertyList : undefined;
+        const snapshot = snapshotComputedStyle(declaration, propertyList);
         this.snapshots.set(element, snapshot);
         return snapshot;
     }

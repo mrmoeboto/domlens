@@ -23,6 +23,49 @@ export interface StyleDeclarationLike {
 const IGNORED_PROPERTIES = new Set(['all', 'd', 'content']);
 
 /**
+ * Logical alias properties (block-size, margin-inline-start, ...) are pure views of their
+ * physical counterparts: getComputedStyle enumerates BOTH, with the writing-mode mapping
+ * already applied, so the physical longhands alone carry the complete information. The
+ * aliases are skipped everywhere (snapshots and diffs) — writing them would only duplicate
+ * the physical declarations byte for byte.
+ */
+const LOGICAL_ALIAS_PROPERTIES = new Set([
+    'block-size',
+    'inline-size',
+    'min-block-size',
+    'min-inline-size',
+    'max-block-size',
+    'max-inline-size',
+    'contain-intrinsic-block-size',
+    'contain-intrinsic-inline-size',
+    'overflow-block',
+    'overflow-inline',
+    'overscroll-behavior-block',
+    'overscroll-behavior-inline'
+]);
+
+const LOGICAL_ALIAS_PATTERN = /^(?:border|inset|margin|padding|scroll-margin|scroll-padding)-(?:block|inline)(?:-|$)|^border-(?:start|end)-(?:start|end)-radius$/;
+
+const isLogicalAliasProperty = (property: string): boolean =>
+    LOGICAL_ALIAS_PROPERTIES.has(property) || LOGICAL_ALIAS_PATTERN.test(property);
+
+/**
+ * Non-inherited properties whose initial value is currentcolor (or computes like it —
+ * Chromium serializes the initial `outline-color: auto` as the resolved color too). When an
+ * element's computed value equals its own computed `color`, the initial value reproduces
+ * exactly that computed value in the serialized clone (whose `color` is reproduced by the
+ * regular diff/inheritance), so the declaration can be omitted: the computed states match
+ * by construction. Together with the four border colors (PropertyClass.BORDER_COLOR)
+ * these dominate the inline-style byte count on text-heavy pages — every element whose
+ * `color` is inherited from a styled body carries all of them.
+ *
+ * Inherited currentcolor-coupled properties (caret-color, -webkit-text-fill-color, ...) are
+ * NOT listed: omitting those means inheriting the PARENT's value, which is wrong whenever
+ * parent and child resolve the coupling differently.
+ */
+const CURRENTCOLOR_COUPLED_PROPERTIES = new Set(['text-decoration-color', 'column-rule-color', 'outline-color']);
+
+/**
  * Inherited properties (safe whitelist): omitted whenever the value equals the parent's
  * computed value, because inheritance reproduces it in the serialized output. Only
  * properties that are DEFINITELY inherited may be listed here.
@@ -197,6 +240,30 @@ const THREE_D_BORDER_STYLES = new Set(['inset', 'outset', 'groove', 'ridge']);
 const isThreeDBorderStyle = (style: string): boolean =>
     style.split(/\s+/).some((value) => THREE_D_BORDER_STYLES.has(value));
 
+/**
+ * Whether a currentcolor-initial color property can be omitted because it equals the
+ * element's own computed `color`: the initial value then resolves to exactly the same
+ * computed value in the serialized clone (whose `color` the diff reproduces). Only valid
+ * where the UA stylesheet does not override the property for this tag — detected from the
+ * probe data: an unstyled probe's value equals its `color` exactly when initial-value
+ * resolution (and not a UA rule) produced it. Form controls are the override case: a bare
+ * textarea probes border-color rgb(118,118,118) with color rgb(0,0,0), so its border
+ * colors stay inline.
+ */
+const isOmittableCurrentcolor = (
+    property: string,
+    value: string,
+    snapshot: StyleSnapshot,
+    defaults: DefaultStyleMap
+): boolean => {
+    if (value !== snapshot.get('color')) {
+        return false;
+    }
+    const probeValue = defaults.get(property);
+    // A failed probe (no defaults) proves nothing: keep the property inline.
+    return probeValue !== undefined && probeValue === defaults.get('color');
+};
+
 const isBorderColorProperty = (property: string): boolean =>
     property.indexOf('border') === 0 && property.indexOf('-color') === property.length - 6;
 
@@ -216,10 +283,12 @@ const isNonInheritedProperty = (property: string): boolean => {
  * for every property of every node of a capture.
  */
 const enum PropertyClass {
-    /** Custom property / ignored property: never written inline. */
+    /** Custom property / ignored property / logical alias: never written inline. */
     SKIP,
     /** border-*-color: kept inline whenever the matching border style is a 3D style. */
     BORDER_COLOR,
+    /** Non-inherited currentcolor-initial property: omitted when equal to own `color`. */
+    CURRENTCOLOR_COUPLED,
     INHERITED,
     NON_INHERITED,
     UNCLASSIFIED
@@ -234,10 +303,17 @@ const classifyProperty = (property: string): PropertyClass => {
     }
 
     let classification: PropertyClass;
-    if (!property || property.indexOf('--') === 0 || IGNORED_PROPERTIES.has(property)) {
+    if (
+        !property ||
+        property.indexOf('--') === 0 ||
+        IGNORED_PROPERTIES.has(property) ||
+        isLogicalAliasProperty(property)
+    ) {
         classification = PropertyClass.SKIP;
     } else if (isBorderColorProperty(property)) {
         classification = PropertyClass.BORDER_COLOR;
+    } else if (CURRENTCOLOR_COUPLED_PROPERTIES.has(property)) {
+        classification = PropertyClass.CURRENTCOLOR_COUPLED;
     } else if (isInheritedProperty(property)) {
         classification = PropertyClass.INHERITED;
     } else if (isNonInheritedProperty(property)) {
@@ -259,11 +335,33 @@ const classifyProperty = (property: string): PropertyClass => {
  */
 export type StyleSnapshot = Map<string, string>;
 
-export const snapshotComputedStyle = (computed: StyleDeclarationLike): StyleSnapshot => {
+/**
+ * Snapshots a computed-style declaration.
+ *
+ * With `propertyList` (the author-style scan, see author-styles.ts) only the listed
+ * properties are read — one style-engine call each instead of ~456 item+getPropertyValue
+ * pairs, which is THE dominant cost of a capture on style-heavy pages. Properties the
+ * declaration does not know return '' and are skipped. Without a list, every enumerated
+ * property is read (the conservative fallback); logical alias properties are skipped
+ * either way (see {@link classifyProperty}).
+ */
+export const snapshotComputedStyle = (
+    computed: StyleDeclarationLike,
+    propertyList?: readonly string[]
+): StyleSnapshot => {
     const snapshot: StyleSnapshot = new Map();
+    if (propertyList) {
+        for (const property of propertyList) {
+            const value = computed.getPropertyValue(property);
+            if (value) {
+                snapshot.set(property, value);
+            }
+        }
+        return snapshot;
+    }
     for (let i = 0, length = computed.length; i < length; i++) {
         const property = computed.item(i);
-        if (property && !(property.charCodeAt(0) === 45 && property.charCodeAt(1) === 45)) {
+        if (property && classifyProperty(property) !== PropertyClass.SKIP) {
             snapshot.set(property, computed.getPropertyValue(property));
         }
     }
@@ -279,7 +377,10 @@ export const snapshotComputedStyle = (computed: StyleDeclarationLike): StyleSnap
  *   references substituted, so the custom properties themselves carry no information,
  * - inherited properties are omitted when they equal the parent's computed value
  *   (inheritance reproduces them); at the tree root they are compared to the defaults,
- * - non-inherited properties are omitted when they equal the tag default,
+ * - non-inherited properties are omitted when they equal the tag default; the
+ *   currentcolor-initial color properties are additionally omitted when they equal the
+ *   element's own computed color and the probe shows no UA tag override (see
+ *   {@link isOmittableCurrentcolor}),
  * - unclassified properties are omitted only when tag default AND parent value agree, which
  *   is safe whether or not the property inherits.
  */
@@ -298,8 +399,14 @@ export const diffStyleSnapshot = (
                 if (isThreeDBorderStyle(snapshot.get(property.slice(0, -6) + '-style') ?? '')) {
                     break;
                 }
-                // Not a 3D border: border colors are regular non-inherited properties.
-                if (value === defaults.get(property)) {
+                // Not a 3D border: border colors are regular non-inherited properties with
+                // a currentcolor initial value.
+                if (value === defaults.get(property) || isOmittableCurrentcolor(property, value, snapshot, defaults)) {
+                    continue;
+                }
+                break;
+            case PropertyClass.CURRENTCOLOR_COUPLED:
+                if (value === defaults.get(property) || isOmittableCurrentcolor(property, value, snapshot, defaults)) {
                     continue;
                 }
                 break;
@@ -346,7 +453,7 @@ export const diffComputedStyle = (
         parentComputed ? snapshotComputedStyle(parentComputed) : null
     );
 
-const snapshot = (computed: CSSStyleDeclaration): DefaultStyleMap => {
+const snapshot = (computed: CSSStyleDeclaration, extraProperties: readonly string[]): DefaultStyleMap => {
     const map: DefaultStyleMap = new Map();
     for (let i = 0; i < computed.length; i++) {
         const property = computed.item(i);
@@ -354,21 +461,68 @@ const snapshot = (computed: CSSStyleDeclaration): DefaultStyleMap => {
             map.set(property, computed.getPropertyValue(property));
         }
     }
+    // Some declarable longhands are not enumerated by getComputedStyle (Chromium e.g.
+    // exposes background-position-x/y only via getPropertyValue): every property the
+    // author-style scan reads on elements must also have a probe default, or the diff
+    // could never drop it. Unknown properties store '' (harmless: element snapshots skip
+    // empty values) so coverage stays checkable on persistent cache hits.
+    for (const property of extraProperties) {
+        if (!map.has(property)) {
+            map.set(property, computed.getPropertyValue(property));
+        }
+    }
     return map;
+};
+
+/**
+ * Default-style maps persist across captures: they snapshot UA stylesheet behavior, which
+ * cannot change within a browser session, so re-probing the same tags on every capture
+ * (and re-creating the probe sandbox iframe) is pure waste on repeated captures. Keyed
+ * weakly by document so frames/tests with different documents stay isolated.
+ */
+let persistentDefaultStyles = new WeakMap<Document, Map<string, DefaultStyleMap>>();
+
+const persistentCacheFor = (ownerDocument: Document): Map<string, DefaultStyleMap> => {
+    let cache = persistentDefaultStyles.get(ownerDocument);
+    if (!cache) {
+        cache = new Map();
+        persistentDefaultStyles.set(ownerDocument, cache);
+    }
+    return cache;
+};
+
+/** Drops the persisted default-style maps (all documents, or one): tests / hard resets. */
+export const clearDefaultStyleCaches = (ownerDocument?: Document): void => {
+    if (ownerDocument) {
+        persistentDefaultStyles.delete(ownerDocument);
+    } else {
+        persistentDefaultStyles = new WeakMap();
+    }
 };
 
 /**
  * Per-tagName cache of default computed styles, resolved by rendering a bare `<tagName>` in
  * a hidden same-document iframe (about:blank, so only UA styles apply) and snapshotting its
- * computed style. The iframe is created lazily on first lookup and must be removed again
- * with {@link DefaultStyleCache.dispose} once the clone walk is done.
+ * computed style. The iframe is created lazily on first lookup (a fully warm cache never
+ * creates it) and must be removed again with {@link DefaultStyleCache.dispose} once the
+ * clone walk is done; the computed maps themselves persist across captures (see above).
  */
 export class DefaultStyleCache {
-    private readonly cache = new Map<string, DefaultStyleMap>();
+    private readonly cache: Map<string, DefaultStyleMap>;
+    /** Failed probes (no sandbox), kept for this instance only — never persisted. */
+    private readonly transient = new Map<string, DefaultStyleMap>();
+    /** Cache keys whose maps were verified to cover extraProperties (once per capture). */
+    private readonly covered = new Set<string>();
     private sandbox: HTMLIFrameElement | null = null;
     private svgRoot: SVGSVGElement | null = null;
 
-    constructor(private readonly ownerDocument: Document) {}
+    constructor(
+        private readonly ownerDocument: Document,
+        /** Non-enumerated longhands the probe must also resolve (the author read set). */
+        private readonly extraProperties: readonly string[] = []
+    ) {
+        this.cache = persistentCacheFor(ownerDocument);
+    }
 
     get(element: Element): DefaultStyleMap {
         const isSvg = element.namespaceURI === SVG_NS;
@@ -379,27 +533,66 @@ export class DefaultStyleCache {
         if (type) {
             key += `|${type.toLowerCase()}`;
         }
-
-        const cached = this.cache.get(key);
-        if (cached) {
-            return cached;
-        }
-
-        const defaults = this.compute(tagName, isSvg, type);
-        this.cache.set(key, defaults);
-        return defaults;
+        return this.lookup(key, tagName, isSvg, type);
     }
 
     /** Defaults for a synthesized html element that has no original (e.g. materialized pseudos). */
     getByTag(tagName: string): DefaultStyleMap {
         const key = tagName.toLowerCase();
+        return this.lookup(key, key, false, null);
+    }
+
+    private lookup(key: string, tagName: string, isSvg: boolean, type: string | null): DefaultStyleMap {
         const cached = this.cache.get(key);
-        if (cached) {
+        if (cached && this.covers(key, cached)) {
             return cached;
         }
-        const defaults = this.compute(key, false, null);
+
+        const transient = this.transient.get(key);
+        if (transient) {
+            return transient;
+        }
+
+        const defaults = this.compute(tagName, isSvg, type);
+        if (defaults.size === 0) {
+            // Never persist a failed probe (no sandbox -> empty map) across captures: the
+            // failure may be transient, and an empty default map cached forever would make
+            // every later capture inline every property. Within this capture the empty map
+            // is kept so the failed probe is not retried per element.
+            if (cached) {
+                return cached;
+            }
+            this.transient.set(key, defaults);
+            return defaults;
+        }
+        if (cached) {
+            // A persistent map from an earlier capture missing some of this capture's
+            // read set: merge the re-probed values in (identity-stable for any holder).
+            for (const [property, value] of defaults) {
+                if (!cached.has(property)) {
+                    cached.set(property, value);
+                }
+            }
+            this.covered.add(key);
+            return cached;
+        }
         this.cache.set(key, defaults);
+        this.covered.add(key);
         return defaults;
+    }
+
+    /** Whether a persisted map already resolves every property of this capture's read set. */
+    private covers(key: string, map: DefaultStyleMap): boolean {
+        if (this.covered.has(key)) {
+            return true;
+        }
+        for (const property of this.extraProperties) {
+            if (!map.has(property)) {
+                return false;
+            }
+        }
+        this.covered.add(key);
+        return true;
     }
 
     dispose(): void {
@@ -408,7 +601,9 @@ export class DefaultStyleCache {
         }
         this.sandbox = null;
         this.svgRoot = null;
-        this.cache.clear();
+        // The computed maps stay cached for the document (persistentDefaultStyles): UA
+        // defaults cannot change within a session, and repeated captures should not pay
+        // for the probe sandbox again.
     }
 
     private compute(tagName: string, isSvg: boolean, type: string | null): DefaultStyleMap {
@@ -423,10 +618,10 @@ export class DefaultStyleCache {
         // html/body always exist in the sandbox; snapshot them in place so their defaults
         // come from real document structure rather than a misplaced probe element.
         if (!isSvg && tagName === 'html') {
-            return snapshot(view.getComputedStyle(doc.documentElement));
+            return snapshot(view.getComputedStyle(doc.documentElement), this.extraProperties);
         }
         if (!isSvg && tagName === 'body') {
-            return snapshot(view.getComputedStyle(doc.body));
+            return snapshot(view.getComputedStyle(doc.body), this.extraProperties);
         }
 
         let probe: Element;
@@ -441,7 +636,7 @@ export class DefaultStyleCache {
             doc.body.appendChild(probe);
         }
 
-        const defaults = snapshot(view.getComputedStyle(probe));
+        const defaults = snapshot(view.getComputedStyle(probe), this.extraProperties);
         probe.parentNode?.removeChild(probe);
         return defaults;
     }

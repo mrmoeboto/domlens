@@ -20,11 +20,14 @@ export {loadSerializedSVG, rasterizeSvg} from './engines/svg/rasterize';
 export type {RasterizeConfig} from './engines/svg/rasterize';
 export {StyleInliner, materializeFormState, applyScrollShift} from './engines/svg/style-inliner';
 export {
+    clearDefaultStyleCaches,
     DefaultStyleCache,
     diffComputedStyle,
     diffStyleSnapshot,
     snapshotComputedStyle
 } from './engines/svg/default-styles';
+export {collectAuthorStyleProfile} from './engines/svg/author-styles';
+export type {AuthorStyleProfile} from './engines/svg/author-styles';
 export type {DefaultStyleMap, StyleDeclarationLike, StyleSnapshot} from './engines/svg/default-styles';
 export {inlinePseudoStyles, PSEUDO_ELEMENT_TAG} from './engines/svg/pseudo';
 export {inlineExternalResources} from './engines/svg/resource-inliner';
