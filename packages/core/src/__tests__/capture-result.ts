@@ -44,6 +44,20 @@ describe('CaptureResult', () => {
         expect(result.height).toBe(20);
     });
 
+    it('should expose stage timings only when captured with debug.timings', async () => {
+        expect(makeResult().result.timings).toBeNull();
+
+        const context = makeContext({debug: {logging: false, timings: true}});
+        await context.time('serialize', () => 'markup');
+        const output: EngineOutput = {
+            kind: 'canvas',
+            canvas: makeCanvas() as unknown as HTMLCanvasElement,
+            width: 1,
+            height: 1
+        };
+        expect(new CaptureResult(output, context).timings).toHaveProperty('serialize');
+    });
+
     it('should return the canvas synchronously for canvas output', () => {
         const {result, canvas} = makeResult();
         expect(result.toCanvas()).toBe(canvas as unknown as HTMLCanvasElement);

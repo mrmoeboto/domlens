@@ -3,6 +3,7 @@ import {asString, isTransparent} from '../canvas/css/types/color';
 import {isBodyElement, isHTMLElement} from '../canvas/dom/node-parser';
 import {parseBackgroundColor} from '../canvas/engine';
 import {CaptureContext} from '../../capture-context';
+import {TaintError} from '../taint-error';
 import {CaptureEngine, ClonedTree, EngineCloneConfig, EngineOutput, EngineSupportResult} from '../types';
 import {embedWebFonts} from './fonts';
 import {inlineExternalResources} from './resource-inliner';
@@ -25,12 +26,34 @@ import {StyleInliner} from './style-inliner';
  */
 export class SvgEngine implements CaptureEngine {
     readonly name = 'svg';
+    /** Whether prepareClone inlined the tree's resources (engine instances are per capture). */
+    private preInlined = false;
+    /** A taint failure prepareClone deferred; render() re-runs the inliner to raise it. */
+    private deferredTaint: TaintError | null = null;
     readonly cloneConfig: EngineCloneConfig = {
         // Inline canvas/video contents as data urls; styles are written inline by the
         // engine-owned computed-style inliner instead of the legacy full-copy mode.
         inlineImages: true,
         copyStyles: false,
-        createStyleInliner: (ownerDocument: Document) => new StyleInliner(ownerDocument)
+        createStyleInliner: (ownerDocument: Document) => new StyleInliner(ownerDocument),
+        // Resource inlining runs against the DETACHED clone, before the iframe adoption:
+        // the capture iframe then decodes in-memory data urls instead of re-fetching (and
+        // waiting for) every image before its load event fires. Best-effort by contract —
+        // a TaintError is swallowed here and re-raised from render() below, where
+        // executeCapture can fall back to the canvas engine.
+        prepareClone: (documentElement: HTMLElement, context: CaptureContext) =>
+            context.time('resource-inline', async () => {
+                try {
+                    await inlineExternalResources(documentElement, context);
+                    this.preInlined = true;
+                } catch (e) {
+                    if (!(e instanceof TaintError)) {
+                        throw e;
+                    }
+                    this.deferredTaint = e;
+                    context.logger.debug(`deferring taint failure to render: ${e.message}`);
+                }
+            })
     };
 
     async supports(context: CaptureContext): Promise<EngineSupportResult> {
@@ -49,9 +72,21 @@ export class SvgEngine implements CaptureEngine {
             throw new Error('Cloned document has no document element to serialize');
         }
 
-        // Inline external resources (img src, background url(), canvases) as data urls
-        // before measuring/serializing: svg-as-image cannot load external references.
-        await inlineExternalResources(documentElement, context);
+        // Resource-inlining sweep (img src, background url(), canvases → data urls; the
+        // serialized svg must be self-contained). The bulk ran pre-adoption in
+        // prepareClone; the sweep is needed again only when that pass did not complete
+        // (deferred taint — re-running raises the TaintError here, where executeCapture
+        // can fall back to the canvas engine), when the engine is driven without the
+        // prepareClone stage, or when afterClone plugins may have added new references.
+        if (!this.preInlined || this.deferredTaint || context.hooks.hasAfterClone) {
+            await context.time('resource-sweep', () => inlineExternalResources(documentElement, context));
+            if (this.deferredTaint) {
+                // The sweep re-attempts every conversion ('soft' caches are per pass, and
+                // failures are never pinned), so a persisting taint re-throws above; a
+                // transient one heals. Reaching here means the tree is fully inlined.
+                this.deferredTaint = null;
+            }
+        }
 
         // Embed the web fonts the cloned tree uses as @font-face rules with data: url
         // sources (fonts.ts): rule discovery runs against the source document (the clone
@@ -61,7 +96,7 @@ export class SvgEngine implements CaptureEngine {
         const sourceDocument = tree.container.ownerDocument;
         const fontCss =
             context.options.fonts.embed && sourceDocument
-                ? await embedWebFonts(sourceDocument, documentElement, context)
+                ? await context.time('font-embed', () => embedWebFonts(sourceDocument, documentElement, context))
                 : '';
 
         const {width, height, left, top} =
@@ -81,26 +116,30 @@ export class SvgEngine implements CaptureEngine {
         // Serialize the whole cloned document element (not just the target subtree) and crop
         // the svg viewport to the element bounds: a standalone subtree would lose its page
         // layout context, while a cropped full document matches what the browser painted.
-        const markup = serializeToSvg(documentElement, {
-            width: outputWidth,
-            height: outputHeight,
-            left: output.x + left,
-            top: output.y + top,
-            backgroundColor: isTransparent(backgroundColor) ? undefined : asString(backgroundColor),
-            fontCss: fontCss || undefined
-        });
+        const markup = await context.time('serialize', () =>
+            serializeToSvg(documentElement, {
+                width: outputWidth,
+                height: outputHeight,
+                left: output.x + left,
+                top: output.y + top,
+                backgroundColor: isTransparent(backgroundColor) ? undefined : asString(backgroundColor),
+                fontCss: fontCss || undefined
+            })
+        );
 
         // Rasterize while the engine can still fail over: a markup that does not load as an
         // image or trips the taint probe must throw here (executeCapture falls back to the
         // canvas engine), not later in a CaptureResult export.
-        const canvas = await rasterizeSvg(markup, {
-            width: outputWidth,
-            height: outputHeight,
-            scale: output.scale,
-            allowTaint: context.options.resources.allowTaint,
-            // WebKit font decode warmup (webkit-quirks.ts); ignored on other engines.
-            fontCss: fontCss || undefined
-        });
+        const canvas = await context.time('rasterize', () =>
+            rasterizeSvg(markup, {
+                width: outputWidth,
+                height: outputHeight,
+                scale: output.scale,
+                allowTaint: context.options.resources.allowTaint,
+                // WebKit font decode warmup (webkit-quirks.ts); ignored on other engines.
+                fontCss: fontCss || undefined
+            })
+        );
 
         return {kind: 'svg', markup, width: outputWidth, height: outputHeight, canvas};
     }

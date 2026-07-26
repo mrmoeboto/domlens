@@ -745,12 +745,18 @@ export const embedWebFonts = async (
     context: CaptureContext
 ): Promise<string> => {
     try {
+        // Rule discovery first: documents without a single @font-face rule (the common
+        // case) skip the per-element usage walk of the cloned tree entirely.
+        const rules = await collectFontFaceRules(sourceDocument, (url) => fetchStylesheetText(url, context));
+        if (!rules.length) {
+            return '';
+        }
+
         const used = collectUsedFonts(clonedRoot);
         if (!used.usages.length) {
             return '';
         }
 
-        const rules = await collectFontFaceRules(sourceDocument, (url) => fetchStylesheetText(url, context));
         const faces = selectUsedFaces(rules, used);
         if (!faces.length) {
             return '';

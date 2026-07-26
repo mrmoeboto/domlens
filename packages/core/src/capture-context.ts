@@ -21,6 +21,8 @@ export class CaptureContext {
     readonly hooks: PluginRunner;
     /** Lazy feature detection results for the current environment. */
     readonly env: typeof FEATURES = FEATURES;
+    /** Per-stage wall-clock timings in ms, recorded when `debug.timings` is set. */
+    readonly stageTimings: Record<string, number> | null;
 
     constructor(
         readonly options: NormalizedOptions,
@@ -45,6 +47,23 @@ export class CaptureContext {
             windowBounds
         );
         this.hooks = new PluginRunner(options.plugins);
+        this.stageTimings = options.debug.timings ? {} : null;
+    }
+
+    /**
+     * Runs `fn`, recording its wall-clock duration under `stage` when `debug.timings` is
+     * enabled (durations of repeated stages accumulate). Zero-allocation no-op otherwise.
+     */
+    async time<T>(stage: string, fn: () => T | Promise<T>): Promise<T> {
+        if (!this.stageTimings) {
+            return fn();
+        }
+        const start = performance.now();
+        try {
+            return await fn();
+        } finally {
+            this.stageTimings[stage] = (this.stageTimings[stage] ?? 0) + (performance.now() - start);
+        }
     }
 
     get logger(): Logger {

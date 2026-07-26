@@ -65,6 +65,14 @@ export const drawContainedFrame = (
 /**
  * Loads a resource url through the shared image cache (which implements the CORS /
  * allowTaint / proxy policy) and re-encodes it as a png data url via a scratch canvas.
+ *
+ * Measured dead end (round 3): fetching the ORIGINAL bytes (fetch + base64, no png
+ * re-encode) loses to this path whenever the captured page has the images warm in the
+ * browser's in-memory image cache — the renderer reuses the decoded <img> for free while
+ * fetch() pays a network/event-loop round-trip per resource (~30ms for 36 images even
+ * with `cache: 'force-cache'`), and async encoders (canvas.toBlob/convertToBlob,
+ * FileReader) cost ms-scale scheduling latency per call (~1s for 36 images in headless
+ * runs). The synchronous draw + toDataURL below is the fastest correct option.
  * Returns null when the resource cannot be loaded — callers leave the original reference
  * in place in that case. Throws a typed {@link TaintError} when the resource loaded but
  * reading it back taints the scratch canvas (cross-origin image without CORS): the svg
@@ -111,6 +119,12 @@ const loadAsDataUrl = async (url: string, context: CaptureContext): Promise<stri
 const inlineStyleUrls = async (element: Element, load: UrlLoader): Promise<void> => {
     const style = (element as HTMLElement | SVGElement).style;
     if (!style || !style.length) {
+        return;
+    }
+
+    // One serialized check beats N getPropertyValue calls: trees with many styled
+    // elements but few url() references (the common case) skip the property loop.
+    if (style.cssText.indexOf('url(') === -1) {
         return;
     }
 

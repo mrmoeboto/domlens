@@ -98,4 +98,12 @@ describe('PluginRunner', () => {
         ]);
         await expect(runner.beforeClone(context)).rejects.toThrow('boom');
     });
+
+    it('should report whether any plugin hooks into afterClone', () => {
+        expect(new PluginRunner([]).hasAfterClone).toBe(false);
+        expect(new PluginRunner([{beforeRender: () => undefined}]).hasAfterClone).toBe(false);
+        expect(new PluginRunner([{beforeRender: () => undefined}, {afterClone: () => undefined}]).hasAfterClone).toBe(
+            true
+        );
+    });
 });

@@ -42,6 +42,15 @@ export interface EngineCloneConfig {
      * disposes it after the clone walk.
      */
     createStyleInliner?: (ownerDocument: Document) => CloneStyleInliner;
+    /**
+     * Optional asynchronous preparation of the detached cloned tree, run between the
+     * clone walk and the adoption into the capture iframe. The svg engine inlines
+     * external resources as data urls here, so the capture iframe decodes them from
+     * memory instead of re-fetching every subresource before its load event fires.
+     * Must be best-effort: failures that should trigger the engine fallback have to be
+     * (re-)thrown from `render()`, not from here — the clone stage cannot fall back.
+     */
+    prepareClone?: (documentElement: HTMLElement, context: CaptureContext) => Promise<void>;
 }
 
 export interface CaptureEngine {

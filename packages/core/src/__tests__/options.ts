@@ -26,7 +26,7 @@ describe('resolveOptions', () => {
         expect(options.fonts).toEqual({embed: true, subset: false});
         expect(options.plugins).toEqual([]);
         expect(options.filter).toBeUndefined();
-        expect(options.debug).toEqual({logging: true, keepContainer: false});
+        expect(options.debug).toEqual({logging: true, keepContainer: false, timings: false});
     });
 
     it('should source dynamic defaults from the environment', () => {
@@ -59,9 +59,18 @@ describe('resolveOptions', () => {
     });
 
     it('should support the debug boolean shorthand', () => {
-        expect(resolveOptions({debug: false}).debug).toEqual({logging: false, keepContainer: false});
-        expect(resolveOptions({debug: true}).debug).toEqual({logging: true, keepContainer: false});
-        expect(resolveOptions({debug: {keepContainer: true}}).debug).toEqual({logging: true, keepContainer: true});
+        expect(resolveOptions({debug: false}).debug).toEqual({logging: false, keepContainer: false, timings: false});
+        expect(resolveOptions({debug: true}).debug).toEqual({logging: true, keepContainer: false, timings: false});
+        expect(resolveOptions({debug: {keepContainer: true}}).debug).toEqual({
+            logging: true,
+            keepContainer: true,
+            timings: false
+        });
+        expect(resolveOptions({debug: {timings: true}}).debug).toEqual({
+            logging: true,
+            keepContainer: false,
+            timings: true
+        });
     });
 
     it('should pass through filter and plugins', () => {

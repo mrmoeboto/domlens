@@ -154,7 +154,10 @@ const createCloneStages = (element: HTMLElement, context: CaptureContext): Captu
 
         let documentCloner: DocumentCloner;
         try {
-            documentCloner = new DocumentCloner(context.legacy, element, cloneOptions);
+            documentCloner = await context.time(
+                'clone-walk',
+                () => new DocumentCloner(context.legacy, element, cloneOptions)
+            );
         } finally {
             styleInliner?.dispose();
         }
@@ -163,7 +166,13 @@ const createCloneStages = (element: HTMLElement, context: CaptureContext): Captu
             return Promise.reject(`Unable to find element in cloned iframe`);
         }
 
-        const container = await documentCloner.toIFrame(element.ownerDocument as Document, windowBounds);
+        if (engine.cloneConfig.prepareClone) {
+            await engine.cloneConfig.prepareClone(documentCloner.documentElement, context);
+        }
+
+        const container = await context.time('clone-iframe', () =>
+            documentCloner.toIFrame(element.ownerDocument as Document, windowBounds)
+        );
 
         return {clonedElement, container, ownerDocument: clonedElement.ownerDocument};
     },

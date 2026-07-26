@@ -89,7 +89,8 @@ export class DocumentCloner {
     private readonly scrolledElements: [Element, number, number][];
     private readonly referenceElement: HTMLElement;
     clonedReferenceElement?: HTMLElement;
-    private readonly documentElement: HTMLElement;
+    /** Root of the detached cloned tree; adopted into the capture iframe by toIFrame(). */
+    readonly documentElement: HTMLElement;
     private readonly counters: CounterState;
     private quoteDepth: number;
 

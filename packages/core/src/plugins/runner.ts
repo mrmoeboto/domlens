@@ -12,6 +12,11 @@ export interface BeforeRenderOutcome {
 export class PluginRunner {
     constructor(private readonly plugins: readonly Plugin[]) {}
 
+    /** Whether any plugin hooks into afterClone (i.e. may mutate the cloned tree). */
+    get hasAfterClone(): boolean {
+        return this.plugins.some((plugin) => typeof plugin.afterClone === 'function');
+    }
+
     async beforeClone(context: CaptureContext): Promise<void> {
         for (const plugin of this.plugins) {
             if (plugin.beforeClone) {

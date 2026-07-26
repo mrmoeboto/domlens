@@ -73,6 +73,11 @@ export interface DebugOptions {
     logging: boolean;
     /** Keep the cloned iframe container in the DOM after the capture (for inspection). */
     keepContainer: boolean;
+    /**
+     * Record per-stage wall-clock timings (clone walk, iframe load, resource inlining,
+     * font embedding, serialization, rasterization) on {@link CaptureResult#timings}.
+     */
+    timings: boolean;
 }
 
 export interface NormalizedOptions {
@@ -147,7 +152,8 @@ export const resolveOptions = (input: CaptureOptions = {}, env: ViewportDefaults
         plugins: input.plugins ?? [],
         debug: {
             logging: debugInput.logging ?? true,
-            keepContainer: debugInput.keepContainer ?? false
+            keepContainer: debugInput.keepContainer ?? false,
+            timings: debugInput.timings ?? false
         }
     };
 };

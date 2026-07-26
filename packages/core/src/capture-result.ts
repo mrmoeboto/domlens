@@ -30,6 +30,11 @@ export class CaptureResult {
         return this.output.kind;
     }
 
+    /** Per-stage wall-clock timings in ms; null unless captured with `debug.timings`. */
+    get timings(): Record<string, number> | null {
+        return this.context.stageTimings;
+    }
+
     get width(): number {
         return this.output.width;
     }
