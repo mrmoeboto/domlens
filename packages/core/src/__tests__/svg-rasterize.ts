@@ -24,18 +24,26 @@ interface FakeContext {
 
 const securityError = (): Error => Object.assign(new Error('The canvas has been tainted'), {name: 'SecurityError'});
 
-const stubEnvironment = (getImageData: FakeContext['getImageData']): FakeContext => {
-    const ctx: FakeContext = {scale: vi.fn(), drawImage: vi.fn(), getImageData};
+/** One fake context per created canvas: contexts[0] is the output canvas, [1] the probe. */
+const stubEnvironment = (getImageData: FakeContext['getImageData']): FakeContext[] => {
+    const contexts: FakeContext[] = [];
     const realCreateElement = document.createElement.bind(document);
     vi.stubGlobal('Image', FakeImage);
     const createElement = (tagName: string): HTMLElement => {
         if (tagName === 'canvas') {
+            const ctx: FakeContext = {
+                scale: vi.fn(),
+                drawImage: vi.fn(),
+                // per-canvas spy so a probe readback is distinguishable from an output readback
+                getImageData: vi.fn().mockImplementation(getImageData)
+            };
+            contexts.push(ctx);
             return {width: 0, height: 0, style: {}, getContext: () => ctx} as unknown as HTMLCanvasElement;
         }
         return realCreateElement(tagName);
     };
     vi.spyOn(document, 'createElement').mockImplementation(createElement as typeof document.createElement);
-    return ctx;
+    return contexts;
 };
 
 describe('rasterizeSvg taint probe', () => {
@@ -44,13 +52,19 @@ describe('rasterizeSvg taint probe', () => {
         vi.restoreAllMocks();
     });
 
-    it('should probe 1x1 after drawing and resolve when the canvas is readable', async () => {
-        const ctx = stubEnvironment(vi.fn().mockReturnValue({data: new Uint8ClampedArray(4)}));
+    it('should probe a 1x1 scratch canvas and leave the output canvas unread', async () => {
+        const contexts = stubEnvironment(vi.fn().mockReturnValue({data: new Uint8ClampedArray(4)}));
 
         await rasterizeSvg('<svg/>', {width: 10, height: 20, scale: 2});
 
-        expect(ctx.drawImage).toHaveBeenCalledTimes(1);
-        expect(ctx.getImageData).toHaveBeenCalledWith(0, 0, 1, 1);
+        // Output canvas: drawn, never read back — a readback would force the browser to
+        // rasterize the full output area eagerly inside capture().
+        const [output, probe] = contexts;
+        expect(output.drawImage).toHaveBeenCalledTimes(1);
+        expect(output.getImageData).not.toHaveBeenCalled();
+        // Probe canvas: same image drawn at 1x1, then read (the taint signal).
+        expect(probe.drawImage).toHaveBeenCalledWith(expect.anything(), 0, 0, 1, 1);
+        expect(probe.getImageData).toHaveBeenCalledWith(0, 0, 1, 1);
     });
 
     it('should throw a typed TaintError when the probe hits a SecurityError', async () => {
@@ -64,7 +78,7 @@ describe('rasterizeSvg taint probe', () => {
     });
 
     it('should skip the probe when allowTaint is set', async () => {
-        const ctx = stubEnvironment(
+        const contexts = stubEnvironment(
             vi.fn().mockImplementation(() => {
                 throw securityError();
             })
@@ -72,7 +86,8 @@ describe('rasterizeSvg taint probe', () => {
 
         await rasterizeSvg('<svg/>', {width: 10, height: 20, scale: 1, allowTaint: true});
 
-        expect(ctx.getImageData).not.toHaveBeenCalled();
+        expect(contexts).toHaveLength(1);
+        expect(contexts[0].getImageData).not.toHaveBeenCalled();
     });
 
     it('should rethrow non-security probe errors untouched', async () => {

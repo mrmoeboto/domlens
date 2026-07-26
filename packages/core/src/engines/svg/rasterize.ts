@@ -36,10 +36,18 @@ export interface RasterizeConfig {
  * Rasterizes svg engine markup onto a canvas at `scale` device pixels per CSS pixel.
  * Browsers re-rasterize svg images at the drawn resolution, so scaling here stays sharp.
  *
- * After drawing, a 1x1 getImageData taint probe verifies the canvas is readable (some
- * browsers taint canvases for svg content they refuse to read back); a SecurityError is
- * rethrown as a typed {@link TaintError}, which `executeCapture` translates into the
- * canvas-engine fallback. Set `allowTaint` to skip the probe.
+ * After drawing, a taint probe verifies the drawn image is readable (some browsers taint
+ * canvases for svg content they refuse to read back); a SecurityError is rethrown as a
+ * typed {@link TaintError}, which `executeCapture` translates into the canvas-engine
+ * fallback. Set `allowTaint` to skip the probe.
+ *
+ * The probe draws the image onto a 1x1 scratch canvas instead of reading the output
+ * canvas: tainting is a property of the drawn source, not of the drawn size, so the
+ * scratch readback raises the same SecurityError — while a readback of the output canvas
+ * would force the browser to rasterize all of it eagerly inside capture(). Browsers
+ * defer canvas paint ops until the first readback/use, so skipping that keeps capture()
+ * latency independent of output area (a full-page 1280x20000 capture rasterizes ~3s
+ * later, when pixels are actually consumed — or never, for svg-only consumers).
  */
 export const rasterizeSvg = async (markup: string, config: RasterizeConfig): Promise<HTMLCanvasElement> => {
     const {width, height, scale} = config;
@@ -67,8 +75,16 @@ export const rasterizeSvg = async (markup: string, config: RasterizeConfig): Pro
         ctx.drawImage(img, 0, 0, width, height);
 
         if (!config.allowTaint) {
+            const probe = document.createElement('canvas');
+            probe.width = 1;
+            probe.height = 1;
+            const probeCtx = probe.getContext('2d');
+            if (!probeCtx) {
+                throw new Error('Unable to get 2d context for svg taint probe');
+            }
+            probeCtx.drawImage(img, 0, 0, 1, 1);
             try {
-                ctx.getImageData(0, 0, 1, 1);
+                probeCtx.getImageData(0, 0, 1, 1);
             } catch (e) {
                 if (!isSecurityError(e)) {
                     throw e;

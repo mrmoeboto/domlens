@@ -1,0 +1,71 @@
+name: Nightly
+
+on:
+  schedule:
+    # 07:00 UTC daily — after the workday, before the next one.
+    - cron: '0 7 * * *'
+  workflow_dispatch:
+
+jobs:
+  reftests-full:
+    name: Full reftest matrix (${{ matrix.browser }} / ${{ matrix.engine }})
+    runs-on: ubuntu-latest
+    container: mcr.microsoft.com/playwright:v1.60.0-noble
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+        engine: [canvas, svg]
+    # TODO: webkit baselines are still being stabilized; drop continue-on-error
+    # once they pass reliably (same caveat as ci.yml).
+    continue-on-error: ${{ matrix.browser == 'webkit' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Build
+        run: npm run build
+      - name: Run reftests
+        env:
+          PW_WEBKIT: '1'
+          ENGINE: ${{ matrix.engine == 'svg' && 'svg' || '' }}
+        run: npx playwright test --project=${{ matrix.browser }}
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-reftest-results-${{ matrix.browser }}-${{ matrix.engine }}
+          path: test-results
+          if-no-files-found: ignore
+
+  bench:
+    name: Bench vs competitors + regression gate
+    runs-on: ubuntu-latest
+    container: mcr.microsoft.com/playwright:v1.60.0-noble
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Build
+        run: npm run build
+      - name: Preserve committed baseline
+        run: cp tests/bench/results/latest.json /tmp/bench-baseline.json
+      - name: Run benchmark suite
+        run: npm run bench
+      - name: Regression gate (>20% median slowdown vs baseline fails)
+        run: npx tsx tests/bench/check-regression.ts /tmp/bench-baseline.json tests/bench/results/latest.json
+      - name: Upload bench results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-bench-results
+          path: tests/bench/results
+          if-no-files-found: error
