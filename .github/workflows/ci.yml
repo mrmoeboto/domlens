@@ -54,6 +54,32 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+      # The reftest baselines are compared on exact dimensions before pixels, so a family
+      # resolving to a different face re-wraps the text and fails as
+      # "Size mismatch: baseline is 800x1560, actual is 800x1440". The fixtures ask for
+      # Arial, Helvetica and Times New Roman, none of which exist on Linux, so each one is
+      # a fontconfig substitution decided entirely by which font files are installed.
+      #
+      # This is the font package set of the machine the baselines were generated on,
+      # reproduced here so the container resolves them identically. Pinning families in a
+      # fontconfig file was tried instead and is a trap: `fc-match Arial` reports Liberation
+      # Sans, but assigning that family outright still changed local rendering on three
+      # fixtures, because browsers query fontconfig with more than a family name. Matching
+      # the font set is what actually reproduces the baselines; overriding resolution is not.
+      #
+      # A missing package here does not fail loudly — fontconfig silently substitutes and
+      # the run fails somewhere in tests/reftests/text. Adding a fixture that needs a new
+      # face means adding its package here.
+      - name: Install fonts (must match the baseline machine's set)
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            fonts-dejavu-core fonts-dejavu-mono fonts-droid-fallback \
+            fonts-freefont-ttf fonts-ipafont-gothic fonts-liberation \
+            fonts-liberation-sans-narrow fonts-noto-cjk fonts-noto-color-emoji \
+            fonts-noto-core fonts-noto-mono fonts-tlwg-loma-otf fonts-ubuntu \
+            fonts-unifont fonts-urw-base35 fonts-wqy-zenhei
+          fc-cache -f
       - name: Build
         run: npm run build
       - name: Run reftests

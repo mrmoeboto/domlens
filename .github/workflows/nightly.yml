@@ -27,6 +27,17 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+      # Same font set as ci.yml, and for the same reason — see the note there.
+      - name: Install fonts (must match the baseline machine's set)
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            fonts-dejavu-core fonts-dejavu-mono fonts-droid-fallback \
+            fonts-freefont-ttf fonts-ipafont-gothic fonts-liberation \
+            fonts-liberation-sans-narrow fonts-noto-cjk fonts-noto-color-emoji \
+            fonts-noto-core fonts-noto-mono fonts-tlwg-loma-otf fonts-ubuntu \
+            fonts-unifont fonts-urw-base35 fonts-wqy-zenhei
+          fc-cache -f
       - name: Build
         run: npm run build
       - name: Run reftests
