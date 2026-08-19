@@ -15,7 +15,7 @@ const canvas = await html2canvas(element, {scale: 2, backgroundColor: '#fff'});
 
 Same call signature, same flat option names, same `Promise<HTMLCanvasElement>` return.
 
-Underneath it is [domlens](https://www.npmjs.com/package/domlens), the capture engine inside
+Underneath it is [domlens](https://www.npmjs.com/package/domlens.js), the capture engine inside
 [SupportShot](https://supportshot.com); see [supportshot.com/domlens](https://supportshot.com/domlens)
 for the project page.
 
@@ -46,7 +46,7 @@ Or keep the global — the classic `window.html2canvas(element, options)` still 
 ## Opting into the accurate renderer
 
 html2canvas had an experimental `foreignObjectRendering` flag. Here it is not experimental: it
-selects [domlens](https://www.npmjs.com/package/domlens)'s SVG engine, which serializes your
+selects [domlens](https://www.npmjs.com/package/domlens.js)'s SVG engine, which serializes your
 subtree and lets the browser lay it out, so CSS support is whatever the browser supports.
 
 ```js

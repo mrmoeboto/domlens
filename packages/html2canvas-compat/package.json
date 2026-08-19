@@ -59,6 +59,6 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "domlens": "0.1.0"
+    "domlens.js": "0.1.0"
   }
 }

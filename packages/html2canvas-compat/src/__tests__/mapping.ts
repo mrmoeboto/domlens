@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest';
-import {resolveOptions} from 'domlens';
-import type {CaptureContext, NormalizedOptions, ResourceLoadingOptions} from 'domlens';
+import {resolveOptions} from 'domlens.js';
+import type {CaptureContext, NormalizedOptions, ResourceLoadingOptions} from 'domlens.js';
 import {mapClassicOptions, Options} from '../mapping';
 
 const normalize = (classic: Partial<Options>): NormalizedOptions => resolveOptions(mapClassicOptions(classic));

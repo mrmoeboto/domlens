@@ -1,4 +1,4 @@
-import {capture} from 'domlens';
+import {capture} from 'domlens.js';
 import {mapClassicOptions, Options} from './mapping';
 
 export type {Options} from './mapping';

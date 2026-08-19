@@ -17,7 +17,7 @@
     "url": "https://github.com/mrmoeboto/domlens/issues"
   },
   "scripts": {
-    "build": "npm run build --workspace=domlens && npm run build --workspace=domlens-html2canvas",
+    "build": "npm run build --workspace=domlens.js && npm run build --workspace=domlens-html2canvas",
     "typecheck": "tsc --noEmit",
     "lint": "eslint packages",
     "format": "prettier --write \"{packages/*/src,tests,scripts}/**/*.ts\"",
@@ -26,7 +26,7 @@
     "reftests": "playwright test",
     "bench": "tsx tests/bench/build-vendor.ts && playwright test --config=playwright.bench.config.ts",
     "bench:cold": "tsx tests/bench/build-vendor.ts && playwright test --config=playwright.bench.config.ts -g \"cold-capture\"",
-    "watch": "npm run watch --workspace=domlens",
+    "watch": "npm run watch --workspace=domlens.js",
     "start": "tsx tests/server.ts --port=8080 --cors=8081"
   },
   "homepage": "https://supportshot.com/domlens",

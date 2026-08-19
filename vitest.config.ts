@@ -5,7 +5,7 @@ export default defineConfig({
     resolve: {
         alias: {
             // Unit tests resolve the workspace dependency from source (no build required).
-            'domlens': fileURLToPath(new URL('./packages/core/src/index.ts', import.meta.url))
+            'domlens.js': fileURLToPath(new URL('./packages/core/src/index.ts', import.meta.url))
         }
     },
     test: {

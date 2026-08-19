@@ -17,7 +17,7 @@
         // Source-based workspace resolution for typecheck/unit tests; package builds
         // override this (paths: {}) to resolve through node_modules to built artifacts.
         "paths": {
-            "domlens": ["./packages/core/src/index.ts"]
+            "domlens.js": ["./packages/core/src/index.ts"]
         }
     },
     "include": ["packages/core/src", "packages/html2canvas-compat/src"]

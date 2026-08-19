@@ -3,7 +3,7 @@
 Fast, high-fidelity DOM-to-image capture for the browser.
 
 ```js
-import {capture} from 'domlens';
+import {capture} from 'domlens.js';
 
 const result = await capture(document.querySelector('#invoice'));
 document.body.append(result.toCanvas());
@@ -28,7 +28,7 @@ benchmarks and the accuracy numbers.
 ## Install
 
 ```bash
-npm install domlens
+npm install domlens.js
 ```
 
 Already using html2canvas? There is a drop-in package that keeps the old call signature:
@@ -46,7 +46,7 @@ const canvas = await html2canvas(element, {scale: 2}); // unchanged from html2ca
 Or from a CDN, exposing `window.domlens`:
 
 ```html
-<script src="https://unpkg.com/domlens/dist/domlens.min.js"></script>
+<script src="https://unpkg.com/domlens.js/dist/domlens.min.js"></script>
 ```
 
 ## API
@@ -56,7 +56,7 @@ Or from a CDN, exposing `window.domlens`:
 Optional. Does a capture's cacheable work early, so the capture itself is faster.
 
 ```js
-import {capture, prewarm} from 'domlens';
+import {capture, prewarm} from 'domlens.js';
 
 prewarm();                        // at load, or whenever the page is idle
 button.onclick = () => capture(document.body);

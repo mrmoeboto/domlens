@@ -1,4 +1,4 @@
-import type {CaptureOptions, Plugin, ResourceLoadingOptions} from 'domlens';
+import type {CaptureOptions, Plugin, ResourceLoadingOptions} from 'domlens.js';
 
 /**
  * Classic html2canvas options (the documented v1 surface), unchanged from html2canvas 1.4.1.

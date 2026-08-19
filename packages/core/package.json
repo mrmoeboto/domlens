@@ -1,5 +1,5 @@
 {
-  "name": "domlens",
+  "name": "domlens.js",
   "title": "domlens",
   "version": "0.1.0",
   "description": "Fast, high-fidelity DOM-to-image capture for the browser. Dual-engine (SVG foreignObject with a canvas-repaint fallback) successor to html2canvas.",
