@@ -21,6 +21,10 @@ render it — the browser's own layout engine, so its CSS support is by definiti
 falls back to the classic repainter automatically when that path is unavailable or the canvas
 would be tainted.
 
+It is the capture engine inside [SupportShot](https://supportshot.com), released on its own; the
+project page at [supportshot.com/domlens](https://supportshot.com/domlens) walks through the
+benchmarks and the accuracy numbers.
+
 ## Install
 
 ```bash

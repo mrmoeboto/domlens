@@ -19,7 +19,7 @@
     "email": "moe@moe.ca",
     "url": "https://github.com/mrmoeboto"
   },
-  "homepage": "https://github.com/mrmoeboto/domlens#readme",
+  "homepage": "https://supportshot.com/domlens",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/mrmoeboto/domlens.git",
@@ -58,7 +58,7 @@
     "build": "rimraf dist && rollup -c rollup.config.mjs && tsc -p tsconfig.build.json",
     "prepublishOnly": "npm run build"
   },
-  "devDependencies": {
+  "dependencies": {
     "domlens": "0.1.0"
   }
 }

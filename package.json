@@ -29,7 +29,7 @@
     "watch": "npm run watch --workspace=domlens",
     "start": "tsx tests/server.ts --port=8080 --cors=8081"
   },
-  "homepage": "https://github.com/mrmoeboto/domlens#readme",
+  "homepage": "https://supportshot.com/domlens",
   "license": "MIT",
   "devDependencies": {
     "@eslint/js": "^10.0.1",

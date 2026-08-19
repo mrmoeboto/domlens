@@ -15,6 +15,10 @@ const canvas = await html2canvas(element, {scale: 2, backgroundColor: '#fff'});
 
 Same call signature, same flat option names, same `Promise<HTMLCanvasElement>` return.
 
+Underneath it is [domlens](https://www.npmjs.com/package/domlens), the capture engine inside
+[SupportShot](https://supportshot.com); see [supportshot.com/domlens](https://supportshot.com/domlens)
+for the project page.
+
 ## What you get by swapping the import
 
 **Not a different rendering.** This package deliberately keeps html2canvas 1.4.1's behavior: it
