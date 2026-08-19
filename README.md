@@ -116,9 +116,9 @@ That gap is the reason `'auto'` prefers the SVG engine.
 
 ## Performance
 
-Median of 15 runs after 3 warmups, Chromium 148, 1280x800 @1x, one shared machine. Timed region
-is capture through a readback that forces rasterization, so nothing is hidden behind laziness.
-**Lower is better; deltas under ~25% are noise on this hardware.**
+Median of 15 runs after 3 warmups, Chromium 148, 1280x800 @1x, on one developer desktop. Timed
+region is capture through a readback that forces rasterization, so nothing is hidden behind
+laziness. **Lower is better; deltas under ~25% are noise on this hardware.**
 
 | library | simple-card (20 nodes) | text-doc (451) | image-heavy (121) | deep-tree (3177) |
 | --- | --- | --- | --- | --- |
@@ -137,6 +137,13 @@ Read that table honestly:
   html2canvas — the cost is browser-side rasterization of a very large output area, not
   serialization. If you capture 3000-node subtrees, pass `engine: 'canvas'` and measure; it runs
   that case in ~1082 ms.
+
+These are one machine's numbers, and the deep-tree gap in particular is hardware-sensitive: on a
+4-core CI runner the same suite puts the SVG engine at 1817 ms against html2canvas's 851 ms — the
+same ordering, but a 2.1x gap rather than a 4.3x one. The ordering has held on every machine
+measured; the magnitude has not. CI re-runs this nightly against a committed baseline
+(`tests/bench/results/ci-baseline.json`) so a real regression is caught even though the absolute
+numbers move.
 
 The SVG the serializer emits is also smaller than the obvious approach — 0.39x snapdom's bytes on
 a small card, 0.97x on a text document — because styles are diffed against the browser's own
