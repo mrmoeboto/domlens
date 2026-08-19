@@ -63,7 +63,7 @@ Or from a CDN, exposing `window.domlens`:
 | `resources.allowTaint` | `false` | Permit a tainted canvas rather than failing. Output cannot be read back. |
 | `resources.proxy` | — | URL of a proxy for cross-origin resources. |
 | `resources.imageTimeout` | `15000` | Per-image load budget, ms. |
-| `resources.cache` | `'soft'` | `'off'`, `'soft'` or `'hard'` resource caching across captures. |
+| `resources.cache` | `'soft'` | `'disabled'`, `'soft'` or `'full'`. `'full'` keeps inlined resource data URLs across captures — worth setting if you capture repeatedly on an image-heavy page. |
 | `filter` | — | `(element) => boolean`; return `false` to omit a subtree. |
 | `viewport` | current window | `{width, height, scrollX, scrollY}` to capture as if the viewport were different. |
 | `fonts.embed` | `true` | Inline the `@font-face` sources the subtree actually uses, so text renders identically. |
