@@ -27,6 +27,8 @@ export {
     snapshotComputedStyle
 } from './engines/svg/default-styles';
 export {collectAuthorStyleProfile} from './engines/svg/author-styles';
+export {prewarm} from './prewarm';
+export type {PrewarmOptions} from './prewarm';
 export type {AuthorStyleProfile} from './engines/svg/author-styles';
 export type {DefaultStyleMap, StyleDeclarationLike, StyleSnapshot} from './engines/svg/default-styles';
 export {inlinePseudoStyles, PSEUDO_ELEMENT_TAG} from './engines/svg/pseudo';

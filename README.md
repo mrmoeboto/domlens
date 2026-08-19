@@ -47,6 +47,33 @@ Or from a CDN, exposing `window.domlens`:
 
 ## API
 
+### `prewarm(options?) => void`
+
+Optional. Does a capture's cacheable work early, so the capture itself is faster.
+
+```js
+import {capture, prewarm} from 'domlens';
+
+prewarm();                        // at load, or whenever the page is idle
+button.onclick = () => capture(document.body);
+```
+
+If your app takes **one** screenshot — a bug-report widget, a "download as image" button,
+an export — this is the single most useful call in the library. The largest first-capture
+cost is probing the browser for its UA default styles, and that work does not need to
+happen while someone is waiting for a screenshot. Measured cold, first capture:
+
+| scenario | without | with `prewarm()` |
+| --- | --- | --- |
+| simple-card | 51 ms | **33 ms** |
+| text-doc | 176 ms | **162 ms** |
+| image-heavy | 190 ms | **176 ms** |
+
+Pass `{element}` if you already know what you will capture; it warms exactly that subtree
+instead of the whole document. It never throws, is safe to call repeatedly, and changes no
+output — captures behave identically without it, they just pay the probe themselves. It
+does not help a capture whose time is dominated by rasterizing a very large output.
+
 ### `capture(element, options?) => Promise<CaptureResult>`
 
 `element` is any `HTMLElement` attached to a document. Everything in `options` is optional:

@@ -31,6 +31,15 @@ that the surface may still move before it settles.
 - **`domlens-html2canvas`**, a separate package keeping the classic `html2canvas(element, options)`
   signature and html2canvas 1.4.1's canvas-engine behavior, with `foreignObjectRendering: true`
   opting into the SVG engine.
+- **`prewarm()`**, which does a capture's cacheable work ahead of time. The dominant
+  first-capture cost is probing the browser for UA default styles, and a one-shot capture
+  (a bug-report widget, an export button) pays it while the user waits. Calling `prewarm()`
+  at idle cuts the first capture of the benchmark's simple-card page from 51ms to 33ms, with
+  no change to output.
+- **A cold-capture benchmark** (`npm run bench:cold`) measuring the first screenshot on a
+  fresh browser context, alongside the existing steady-state one. The two disagree sharply:
+  snapdom leads three of four scenarios warm and loses all four cold, because its advantage
+  is cache reuse a single capture never sees.
 - **A cross-library benchmark suite** (`npm run bench`) measuring domlens against snapdom,
   html-to-image, modern-screenshot and html2canvas 1.4.1 in one process on one machine, plus a
   perf regression gate normalized against a reference library so a slower host does not read as a
