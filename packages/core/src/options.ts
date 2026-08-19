@@ -62,10 +62,19 @@ export interface ViewportOptions {
     scrollY: number;
 }
 
-/** Placeholder until the font pipeline lands (Phase 4/6); currently unused. */
+/**
+ * Web font handling for the svg engine.
+ *
+ * Only `embed` exists, and it is read in exactly one place (engines/svg/engine.ts). There was
+ * also a `subset` flag here; it was removed before the first release because nothing consumed
+ * it — the option could be set and changed nothing, which is worse than its absence. Note that
+ * `@font-face` selection already prunes faces whose `unicode-range` cannot match any character
+ * in the subtree; that happens unconditionally and is not what `subset` meant. Real glyph
+ * subsetting is still unimplemented, and the flag should come back with the code, not before.
+ */
 export interface FontOptions {
+    /** Re-emit used `@font-face` rules with `data:` url sources so text renders identically. */
     embed: boolean;
-    subset: boolean;
 }
 
 export interface DebugOptions {
@@ -146,8 +155,7 @@ export const resolveOptions = (input: CaptureOptions = {}, env: ViewportDefaults
             scrollY: input.viewport?.scrollY ?? env.pageYOffset ?? 0
         },
         fonts: {
-            embed: input.fonts?.embed ?? true,
-            subset: input.fonts?.subset ?? false
+            embed: input.fonts?.embed ?? true
         },
         plugins: input.plugins ?? [],
         debug: {

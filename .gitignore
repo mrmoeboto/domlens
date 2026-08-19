@@ -24,3 +24,6 @@ tests/reftests.js
 tests/playwright/reports/*.png
 # Competitor bundles staged on demand by tests/bench/build-vendor.ts (npm run bench).
 tests/bench/vendor/
+
+# Playwright MCP session artifacts
+.playwright-mcp/

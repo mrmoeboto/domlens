@@ -1,19 +1,30 @@
-Please make sure you are testing with the latest [release of html2canvas](https://github.com/niklasvh/html2canvas/releases). 
-Old versions are not supported and issues reported for them will be closed.
+Please make sure you are testing with the latest [release of domlens](https://github.com/mrmoeboto/domlens/releases).
 
-# Please follow the general troubleshooting steps first:
+# Before opening an issue
 
-- [ ] You are using the latest [version](https://github.com/niklasvh/html2canvas/releases)
-- [ ] You are testing using the non-minified version of html2canvas and checked any potential issues reported in the console
+- [ ] You are on the latest [version](https://github.com/mrmoeboto/domlens/releases)
+- [ ] You are testing with the non-minified bundle (`dist/domlens.js`, not `dist/domlens.min.js`) and have checked the console
+- [ ] You have tried the other engine — `capture(el, {engine: 'canvas'})` if you are on the default, `{engine: 'svg'}` if you are not — and said below whether it changes anything
 
-<!-- You can erase any parts of this template not applicable to your Issue. -->
+That last one is the single most useful thing you can tell us: domlens has two independent
+renderers, and which of them reproduces a bug narrows it down enormously.
 
-### Bug reports:
+<!-- Erase any part of this template that does not apply. -->
 
-Please replace this line with a brief summary of your issue **AND** if possible an example on [jsfiddle](https://jsfiddle.net/).
+### Bug reports
 
-### Specifications:
+A brief summary, and if at all possible a reproduction on [jsfiddle](https://jsfiddle.net/) or
+[CodePen](https://codepen.io/). A screenshot of what you got next to what you expected helps.
 
- * html2canvas version tested with:
+### Specifications
+
+ * domlens version:
+ * Package (`domlens` or `domlens-html2canvas`):
+ * Engine (`auto` / `svg` / `canvas`, and whether the other one differs):
  * Browser & version:
  * Operating system:
+
+### Migrating from html2canvas?
+
+Say so — behavior differences between `html2canvas` and `domlens-html2canvas` are treated as
+bugs in this project.

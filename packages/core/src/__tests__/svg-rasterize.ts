@@ -22,10 +22,21 @@ interface FakeContext {
     getImageData: ReturnType<typeof vi.fn>;
 }
 
+/**
+ * The one context method the probe actually calls, as a callable signature.
+ *
+ * Deliberately NOT `FakeContext['getImageData']`: that is `ReturnType<typeof vi.fn>`, i.e.
+ * `Mock<Procedure | Constructable>`, which is a union with a construct signature and so has
+ * no call signature to match — passing one to `mockImplementation` does not compile. The
+ * interface keeps the mock type because the assertions below want the matcher surface;
+ * the parameter wants a function, and they are not the same type.
+ */
+type GetImageData = (sx: number, sy: number, sw: number, sh: number) => ImageData;
+
 const securityError = (): Error => Object.assign(new Error('The canvas has been tainted'), {name: 'SecurityError'});
 
 /** One fake context per created canvas: contexts[0] is the output canvas, [1] the probe. */
-const stubEnvironment = (getImageData: FakeContext['getImageData']): FakeContext[] => {
+const stubEnvironment = (getImageData: GetImageData): FakeContext[] => {
     const contexts: FakeContext[] = [];
     const realCreateElement = document.createElement.bind(document);
     vi.stubGlobal('Image', FakeImage);

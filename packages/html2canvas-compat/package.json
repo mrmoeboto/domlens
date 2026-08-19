@@ -1,36 +1,64 @@
 {
-  "title": "html2canvas",
   "name": "domlens-html2canvas",
-  "description": "Drop-in html2canvas replacement: the classic html2canvas(element, options) API implemented on top of @domlens/core",
+  "title": "html2canvas",
+  "version": "0.1.0",
+  "description": "Drop-in html2canvas replacement: the classic html2canvas(element, options) API implemented on top of domlens.",
+  "keywords": [
+    "html2canvas",
+    "screenshot",
+    "drop-in",
+    "replacement",
+    "compat",
+    "canvas",
+    "dom-to-image",
+    "domlens"
+  ],
+  "license": "MIT",
+  "author": {
+    "name": "Moe Loubani",
+    "email": "moe@moe.ca",
+    "url": "https://github.com/mrmoeboto"
+  },
+  "homepage": "https://github.com/mrmoeboto/domlens#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mrmoeboto/domlens.git",
+    "directory": "packages/html2canvas-compat"
+  },
+  "bugs": {
+    "url": "https://github.com/mrmoeboto/domlens/issues"
+  },
+  "type": "commonjs",
   "main": "dist/html2canvas.js",
   "module": "dist/html2canvas.esm.js",
-  "typings": "dist/types/index.d.ts",
   "browser": "dist/html2canvas.js",
+  "types": "dist/types/index.d.ts",
+  "typings": "dist/types/index.d.ts",
+  "unpkg": "dist/html2canvas.min.js",
+  "jsdelivr": "dist/html2canvas.min.js",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/html2canvas.esm.js",
+      "require": "./dist/html2canvas.js",
+      "default": "./dist/html2canvas.js"
+    },
+    "./package.json": "./package.json"
+  },
   "files": [
     "dist"
   ],
-  "version": "1.4.1",
-  "author": {
-    "name": "Niklas von Hertzen",
-    "email": "niklasvh@gmail.com",
-    "url": "https://hertzen.com"
-  },
   "engines": {
     "node": ">=18.0.0"
   },
-  "repository": {
-    "type": "git",
-    "url": "git@github.com:niklasvh/html2canvas.git"
-  },
-  "bugs": {
-    "url": "https://github.com/niklasvh/html2canvas/issues"
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
-    "build": "rimraf dist && rollup -c rollup.config.mjs && tsc -p tsconfig.build.json"
+    "build": "rimraf dist && rollup -c rollup.config.mjs && tsc -p tsconfig.build.json",
+    "prepublishOnly": "npm run build"
   },
-  "homepage": "https://html2canvas.hertzen.com",
-  "license": "MIT",
-  "dependencies": {
-    "@domlens/core": "1.4.1"
+  "devDependencies": {
+    "domlens": "0.1.0"
   }
 }

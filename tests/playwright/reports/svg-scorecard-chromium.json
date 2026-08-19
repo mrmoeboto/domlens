@@ -105,7 +105,7 @@
     },
     {
       "path": "iframe.html",
-      "ssim": 0.9566010088337048
+      "ssim": 0.9518120189488971
     },
     {
       "path": "images/base.html",
@@ -145,15 +145,15 @@
     },
     {
       "path": "images/svg/native_only.html",
-      "ssim": 0.9982015306651741
+      "ssim": 0.9982014248815435
     },
     {
       "path": "images/svg/node.html",
-      "ssim": 0.9998988228057256
+      "ssim": 0.9998989444390779
     },
     {
       "path": "images/video.html",
-      "ssim": 0.9461435695244275
+      "ssim": 0.9457196559936694
     },
     {
       "path": "list/decimal-leading-zero.html",

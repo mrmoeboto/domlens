@@ -1,10 +1,10 @@
-import {capture} from '@domlens/core';
+import {capture} from 'domlens';
 import {mapClassicOptions, Options} from './mapping';
 
 export type {Options} from './mapping';
 
 /**
- * Classic html2canvas API, implemented on top of @domlens/core's `capture` by mapping the
+ * Classic html2canvas API, implemented on top of domlens's `capture` by mapping the
  * legacy option names onto the normalized schema (see ./mapping.ts). Behavior (including
  * the html/body background special-casing and container lifecycle) is unchanged from
  * html2canvas 1.4.1; the canvas engine is used by default (no auto-fallback), preserving

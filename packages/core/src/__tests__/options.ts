@@ -23,7 +23,7 @@ describe('resolveOptions', () => {
             cacheMode: 'soft'
         });
         expect(options.viewport).toEqual({width: 0, height: 0, scrollX: 0, scrollY: 0});
-        expect(options.fonts).toEqual({embed: true, subset: false});
+        expect(options.fonts).toEqual({embed: true});
         expect(options.plugins).toEqual([]);
         expect(options.filter).toBeUndefined();
         expect(options.debug).toEqual({logging: true, keepContainer: false, timings: false});

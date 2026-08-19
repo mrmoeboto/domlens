@@ -1,8 +1,8 @@
 {
-  "name": "html2canvas-monorepo",
+  "name": "domlens-monorepo",
   "private": true,
-  "version": "1.4.1",
-  "description": "Screenshots with JavaScript",
+  "version": "0.1.0",
+  "description": "domlens \u2014 fast, high-fidelity DOM-to-image capture for the browser; successor to html2canvas.",
   "workspaces": [
     "packages/*"
   ],
@@ -11,13 +11,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:niklasvh/html2canvas.git"
+    "url": "git+https://github.com/mrmoeboto/domlens.git"
   },
   "bugs": {
-    "url": "https://github.com/niklasvh/html2canvas/issues"
+    "url": "https://github.com/mrmoeboto/domlens/issues"
   },
   "scripts": {
-    "build": "npm run build --workspace=@domlens/core && npm run build --workspace=domlens-html2canvas",
+    "build": "npm run build --workspace=domlens && npm run build --workspace=domlens-html2canvas",
     "typecheck": "tsc --noEmit",
     "lint": "eslint packages",
     "format": "prettier --write \"{packages/*/src,tests,scripts}/**/*.ts\"",
@@ -25,10 +25,10 @@
     "unittest": "vitest run",
     "reftests": "playwright test",
     "bench": "tsx tests/bench/build-vendor.ts && playwright test --config=playwright.bench.config.ts",
-    "watch": "npm run watch --workspace=@domlens/core",
+    "watch": "npm run watch --workspace=domlens",
     "start": "tsx tests/server.ts --port=8080 --cors=8081"
   },
-  "homepage": "https://html2canvas.hertzen.com",
+  "homepage": "https://github.com/mrmoeboto/domlens#readme",
   "license": "MIT",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -66,5 +66,10 @@
     "typescript-eslint": "^8.61.0",
     "vitest": "^4.1.8",
     "yargs": "^18.0.0"
+  },
+  "author": {
+    "name": "Moe Loubani",
+    "email": "moe@moe.ca",
+    "url": "https://github.com/mrmoeboto"
   }
 }

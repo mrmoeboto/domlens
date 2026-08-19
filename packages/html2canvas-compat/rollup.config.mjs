@@ -9,13 +9,22 @@ const pkg = createRequire(import.meta.url)('./package.json');
 
 // Drop-in html2canvas replacement: the UMD bundle keeps the classic global name and the
 // classic single-callable shape (`window.html2canvas(element, options)`), and bundles
-// @domlens/core (resolved to its built esm output, so core must be built first).
+// domlens (resolved to its built esm output, so core must be built first).
 const umdName = 'html2canvas';
 
+
+// The upstream copyright line is not decoration and must not be dropped. domlens is a fork
+// of html2canvas, whose MIT licence requires its copyright and permission notice to travel
+// with "all copies or substantial portions of the Software" — and a minified bundle pasted
+// into someone's app is exactly that. terser is configured to keep `/*!` comments, so this
+// banner is the only thing carrying the notice into dist/*.min.js and into every downstream
+// vendored copy. See LICENSE for the full text of both grants.
 const banner = `/*!
  * ${pkg.title} ${pkg.version} <${pkg.homepage}>
- * Drop-in html2canvas compatibility build (${pkg.name}) powered by @domlens/core
+ * Drop-in html2canvas compatibility build (${pkg.name}) powered by domlens
  * Copyright (c) ${new Date().getFullYear()} ${pkg.author.name} <${pkg.author.url}>
+ * Includes code from html2canvas <https://github.com/niklasvh/html2canvas>,
+ * Copyright (c) 2012 Niklas von Hertzen. Released under MIT License.
  * Released under ${pkg.license} License
  */`;
 
@@ -28,7 +37,7 @@ const plugins = () => [
         noEmit: false,
         outputToFilesystem: false,
         exclude: ['src/**/__tests__/**', 'src/**/__mocks__/**'],
-        // Resolve @domlens/core through node_modules (built dist) rather than the repo-wide
+        // Resolve domlens through node_modules (built dist) rather than the repo-wide
         // source paths mapping, so the bundle consumes the core build artifact.
         compilerOptions: {types: [], paths: {}}
     }),

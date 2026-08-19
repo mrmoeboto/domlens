@@ -1,4 +1,4 @@
-import type {CaptureOptions, Plugin, ResourceLoadingOptions} from '@domlens/core';
+import type {CaptureOptions, Plugin, ResourceLoadingOptions} from 'domlens';
 
 /**
  * Classic html2canvas options (the documented v1 surface), unchanged from html2canvas 1.4.1.
@@ -49,7 +49,7 @@ export interface Options {
 }
 
 /**
- * Maps the classic option names onto the normalized @domlens/core schema. Behavior is
+ * Maps the classic option names onto the normalized domlens schema. Behavior is
  * unchanged from html2canvas 1.4.1: the compat layer renders with the canvas engine by
  * default (no auto-fallback, preserving pixel behavior), and `onclone`/`ignoreElements`
  * become an afterClone plugin and an inverted `filter`. `foreignObjectRendering: true`

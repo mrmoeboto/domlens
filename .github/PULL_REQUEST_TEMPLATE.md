@@ -1,37 +1,36 @@
-A similar PR may already be submitted!
-Please search among the [Pull request](https://github.com/niklasvh/html2canvas/pulls) before creating one.
+A similar PR may already be open — please search the [pull requests](https://github.com/mrmoeboto/domlens/pulls) first.
 
-Thanks for submitting a pull request! Please provide enough information so that others can review your pull request:
-
-Before opening a pull request, please make sure all the tests pass locally by running `npm test`.
+Before opening, run `npm test` locally (lint, typecheck, unit tests and reference tests).
 
 **Summary**
 
-<!-- Summary of the PR -->
+<!-- What does this change and why? -->
 
-This PR fixes/implements the following **bugs/features**
+**Motivation**
 
-* [ ] Bug 1
-* [ ] Bug 2
-* [ ] Feature 1
-* [ ] Feature 2
-* [ ] Breaking changes
-
-<!-- You can skip this if you're fixing a typo or adding an app to the Showcase. -->
-
-Explain the **motivation** for making this change. What existing problem does the pull request solve?
-
-<!-- Example: When "Adding a function to do X", explain why it is necessary to have a way to do X. -->
+<!-- What existing problem does this solve? -->
 
 **Test plan (required)**
 
-Demonstrate how the issue/feature can be replicated. For most cases, simply adding an appropriate html/css template into the [reftests](https://github.com/niklasvh/html2canvas/tree/master/tests/reftests) should be sufficient. Please see other tests there for reference.
+For most rendering changes, adding an html/css template to the [reftests](https://github.com/mrmoeboto/domlens/tree/main/tests/reftests)
+is enough — see the existing ones for reference. Note which engines you ran:
+
+- [ ] `npm run unittest`
+- [ ] `npx playwright test --project=chromium`
+- [ ] `npx playwright test --project=firefox`
+- [ ] `ENGINE=svg npx playwright test` (the SVG engine's own suite)
+
+**Rendering changes**
+
+If this changes output pixels, say so explicitly and update the affected baselines in the same
+commit. Baselines under `tests/playwright/baselines/` are a contract — regenerating them wholesale
+to make a suite pass will be rejected.
 
 **Code formatting**
 
-Please make sure that code adheres to the project code formatting. Running `npm run format` will automatically format your code correctly.
+`npm run format` formats to the project style.
 
 **Closing issues**
 
-<!-- Put `closes #XXXX` in your comment to auto-close the issue that your PR fixes (if such). -->
+<!-- Put `closes #XXXX` here to auto-close the issue this fixes. -->
 Fixes #

@@ -11,9 +11,18 @@ const pkg = createRequire(import.meta.url)('./package.json');
 // the core UMD bundle exposes the new API as a namespace: `window.domlens.capture(element)`.
 const umdName = 'domlens';
 
+
+// The upstream copyright line is not decoration and must not be dropped. domlens is a fork
+// of html2canvas, whose MIT licence requires its copyright and permission notice to travel
+// with "all copies or substantial portions of the Software" — and a minified bundle pasted
+// into someone's app is exactly that. terser is configured to keep `/*!` comments, so this
+// banner is the only thing carrying the notice into dist/*.min.js and into every downstream
+// vendored copy. See LICENSE for the full text of both grants.
 const banner = `/*!
  * ${pkg.title} ${pkg.version} <${pkg.homepage}>
  * Copyright (c) ${new Date().getFullYear()} ${pkg.author.name} <${pkg.author.url}>
+ * Includes code from html2canvas <https://github.com/niklasvh/html2canvas>,
+ * Copyright (c) 2012 Niklas von Hertzen. Released under MIT License.
  * Released under ${pkg.license} License
  */`;
 
