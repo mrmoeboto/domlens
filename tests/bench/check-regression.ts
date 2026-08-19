@@ -39,6 +39,8 @@ interface Results {
 }
 
 const THRESHOLD = 1.2;
+/** Used when the two runs came from different CPUs; see the note by `sameCpu` below. */
+const LOOSE_THRESHOLD = 2.0;
 const REFERENCE = 'snapdom';
 
 const load = (path: string): Results => JSON.parse(readFileSync(path, 'utf-8')) as Results;
@@ -77,8 +79,25 @@ if (baselineEnv !== freshEnv) {
     process.exit(2);
 }
 
-// Same environment, so the raw medians are meaningful too and both metrics gate.
-const sameHost = true;
+// Same CPU or not decides how much this comparison can be asked to prove.
+//
+// GitHub's hosted runners are heterogeneous: consecutive nightly runs landed on a 4-core
+// Intel Xeon 8370C and a 4-core AMD EPYC 7763. Between those two the raw domlens medians
+// moved 1.07-1.09x — noise — while the snapdom-normalized ratio moved up to 1.29x, because
+// snapdom and domlens do not scale across silicon at the same rate. Normalizing against a
+// competitor removes noise between two runs on one machine and does not remove a change of
+// machine, which is the same lesson twice: first for desktop-vs-runner, then for
+// Intel-vs-AMD inside one "environment".
+//
+// So a 20% gate is only meaningful on identical hardware. Anywhere else it reports
+// regressions that are not there, and a gate that cries wolf is worse than no gate: it
+// trains people to ignore a red nightly. On differing CPUs the threshold widens to a bound
+// that hardware alone has not been observed to cross, which still catches the thing this
+// job exists for — a change that makes domlens dramatically slower.
+const sameCpu = (baseline.host?.cpu ?? 'a') === (fresh.host?.cpu ?? 'b');
+const threshold = sameCpu ? THRESHOLD : LOOSE_THRESHOLD;
+// Raw medians only mean something on identical hardware; elsewhere only the ratio gates.
+const sameHost = sameCpu;
 
 let failures = 0;
 const rows: string[] = [];
@@ -111,11 +130,11 @@ for (const [scenario, freshData] of Object.entries(fresh.scenarios)) {
             const freshRatio = timing.median / freshRef;
             const ratioFactor = freshRatio / baseRatio;
             detail += `, vs-${REFERENCE} ratio ${baseRatio.toFixed(2)} -> ${freshRatio.toFixed(2)} (${ratioFactor.toFixed(2)}x)`;
-            if (ratioFactor > THRESHOLD) {
+            if (ratioFactor > threshold) {
                 verdict = 'REGRESSION';
                 failures++;
             }
-        } else if (sameHost && rawFactor > THRESHOLD) {
+        } else if (sameHost && rawFactor > threshold) {
             // No reference library in one of the runs: fall back to raw medians, but only
             // when both runs came from the same browser/host.
             verdict = 'REGRESSION';
@@ -126,13 +145,25 @@ for (const [scenario, freshData] of Object.entries(fresh.scenarios)) {
     }
 }
 
-console.log(`Perf regression gate (threshold ${THRESHOLD}x, reference: ${REFERENCE}, same host: ${sameHost})`);
+console.log(
+    `Perf regression gate (threshold ${threshold}x, reference: ${REFERENCE}, ` +
+        `cpu: ${sameCpu ? 'identical' : 'DIFFERENT'})`
+);
+if (!sameCpu) {
+    console.log(
+        `  baseline cpu: ${baseline.host?.cpu ?? 'unknown'}\n` +
+            `  this run:     ${fresh.host?.cpu ?? 'unknown'}\n` +
+            `  Different silicon, so the threshold is widened to ${LOOSE_THRESHOLD}x and raw medians` +
+            ` are reported but not gated. A regression under ${LOOSE_THRESHOLD}x cannot be told from` +
+            ` the hardware here — re-run on matching hardware to gate it at ${THRESHOLD}x.`
+    );
+}
 for (const row of rows) {
     console.log(`  ${row}`);
 }
 
 if (failures > 0) {
-    console.error(`\n${failures} regression(s) above the ${THRESHOLD}x threshold.`);
+    console.error(`\n${failures} regression(s) above the ${threshold}x threshold.`);
     process.exit(1);
 }
 console.log('\nNo regressions above threshold.');
