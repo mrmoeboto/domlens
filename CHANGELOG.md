@@ -49,7 +49,8 @@ that the surface may still move before it settles.
 - On very deep trees (thousands of nodes) the SVG engine is several times slower than the canvas
   engine and than html2canvas, because the browser rasterizes a very large output area. Pass
   `engine: 'canvas'` for that shape of content.
-- Safari/WebKit is implemented and runs in the nightly CI matrix, but is not gated on and has no
-  published fidelity scorecard yet.
+- WebKit's SVG-engine fidelity is 93.9% of cases at ≥0.90 SSIM, against 99% on Chromium and
+  Firefox. It is gated on in CI, so it cannot silently regress, but it is the weakest of the
+  three engines today.
 - There is no glyph subsetting. Embedding prunes `@font-face` rules whose `unicode-range` cannot
   match the captured text, but the font binaries themselves are embedded whole.

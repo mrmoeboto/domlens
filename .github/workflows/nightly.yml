@@ -16,9 +16,6 @@ jobs:
       matrix:
         browser: [chromium, firefox, webkit]
         engine: [canvas, svg]
-    # TODO: webkit baselines are still being stabilized; drop continue-on-error
-    # once they pass reliably (same caveat as ci.yml).
-    continue-on-error: ${{ matrix.browser == 'webkit' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

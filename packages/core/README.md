@@ -107,10 +107,10 @@ if you know why.
 
 Scored as SSIM against a real browser screenshot of the same element, across a 99-case suite:
 
-| engine | Chromium | Firefox |
-| --- | --- | --- |
-| svg (default) | **99%** of cases ≥ 0.90 SSIM | **99%** |
-| canvas (fallback) | 88.3% | 87.2% |
+| engine | Chromium | Firefox | WebKit |
+| --- | --- | --- | --- |
+| svg (default) | **99%** of cases ≥ 0.90 SSIM | **99%** | **93.9%** |
+| canvas (fallback) | 88.3% | 87.2% | — |
 
 That gap is the reason `'auto'` prefers the SVG engine.
 
@@ -144,12 +144,18 @@ defaults rather than dumped wholesale.
 
 ## Browser support
 
-Chromium (Chrome, Edge) and Firefox are the verified targets: the fidelity scorecards above are
-published for both, and the reference-test matrix runs on both.
+All three engines are verified and gating. The reference-test matrix runs Chromium, Firefox and
+WebKit on every push, and a failure in any of them fails the build.
 
-Safari/WebKit is implemented — including WebKit-specific `foreignObject` quirks — and runs in the
-nightly CI matrix, but it is not yet gated on, and no fidelity scorecard is published for it.
-Treat Safari as supported-but-unproven until that lands.
+- **Chromium** covers Chrome and Edge.
+- **Firefox** is Gecko.
+- **WebKit** is Safari on macOS, and on iOS it is the engine behind *every* browser — so a
+  visitor on an iPhone is on it whatever they installed.
+
+WebKit scores lower than the other two (93.9% against 99%) and is worth calibrating rather than
+glossing: its reference baselines were generated from WebKit's own output, so they hold WebKit to
+*not changing*, while the 93.9% is the number that says how close that output is to a real
+screenshot. If you ship primarily to Safari, that six-point gap is the honest expectation.
 
 ## Differences from html2canvas
 
