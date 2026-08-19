@@ -31,6 +31,9 @@ benchmarks and the accuracy numbers.
 npm install domlens.js
 ```
 
+The package is `domlens.js` because `domlens` was already taken on npm; the library, the global
+and the docs all still call it domlens.
+
 Already using html2canvas? There is a drop-in package that keeps the old call signature:
 
 ```bash

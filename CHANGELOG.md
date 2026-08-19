@@ -5,10 +5,21 @@ All notable changes to domlens are documented here.
 domlens is a fork of html2canvas. Everything that happened up to html2canvas 1.4.1 (January 2022)
 is in [CHANGELOG-html2canvas.md](CHANGELOG-html2canvas.md); this file starts where that one stops.
 
-## 0.1.0 — unreleased
+## 0.1.0 — 2026-08-19
 
-First release under the domlens name. The version resets to 0.1.0 rather than continuing from
-html2canvas's 1.4.1: this is a new package with a different API, and pre-1.0 is an honest signal
+First release under the domlens name, published to npm as **`domlens.js`** — `domlens` itself
+was already taken. The library, the UMD global (`window.domlens`) and the documentation all
+still call it domlens; only the npm package name carries the suffix. The drop-in wrapper kept
+the name `domlens-html2canvas`.
+
+`domlens-html2canvas` depends on `domlens.js` at runtime even though its bundle inlines the
+core library, and that is deliberate rather than an oversight: its published declarations
+import types from it — `Options.cache` is typed as `ResourceLoadingOptions['cache']`, so the
+core's types are part of the wrapper's public surface — and as a devDependency, installing the
+wrapper on its own failed to typecheck with TS2307. Verified against a packed tarball in a
+clean project under both bundler and node16 resolution.
+
+The version resets to 0.1.0 rather than continuing from html2canvas's 1.4.1: this is a new package with a different API, and pre-1.0 is an honest signal
 that the surface may still move before it settles.
 
 ### Added

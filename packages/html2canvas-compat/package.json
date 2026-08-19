@@ -2,7 +2,7 @@
   "name": "domlens-html2canvas",
   "title": "html2canvas",
   "version": "0.1.0",
-  "description": "Drop-in html2canvas replacement: the classic html2canvas(element, options) API implemented on top of domlens.",
+  "description": "Drop-in html2canvas replacement: the classic html2canvas(element, options) API implemented on top of domlens.js.",
   "keywords": [
     "html2canvas",
     "screenshot",

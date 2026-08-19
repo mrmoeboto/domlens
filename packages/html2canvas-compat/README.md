@@ -71,7 +71,7 @@ behave as they always did.
 
 ## For new code
 
-Prefer [`domlens`](https://www.npmjs.com/package/domlens) directly. It defaults to the accurate
+Prefer [`domlens.js`](https://www.npmjs.com/package/domlens.js) directly. It defaults to the accurate
 SVG engine, and returns a capture result rather than just a canvas — so you can get SVG, PNG,
 JPEG, WebP or a Blob without a second conversion step.
 
