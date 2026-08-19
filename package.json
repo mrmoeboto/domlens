@@ -25,6 +25,7 @@
     "unittest": "vitest run",
     "reftests": "playwright test",
     "bench": "tsx tests/bench/build-vendor.ts && playwright test --config=playwright.bench.config.ts",
+    "bench:cold": "tsx tests/bench/build-vendor.ts && playwright test --config=playwright.bench.config.ts -g \"cold-capture\"",
     "watch": "npm run watch --workspace=domlens",
     "start": "tsx tests/server.ts --port=8080 --cors=8081"
   },

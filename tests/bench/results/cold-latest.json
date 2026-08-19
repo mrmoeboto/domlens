@@ -1,0 +1,160 @@
+{
+  "timestamp": "2026-08-19T14:48:38.101Z",
+  "host": {
+    "environment": "local",
+    "cpu": "Intel(R) Core(TM) i7-8700K CPU @ 3.70GHz",
+    "cores": 12,
+    "arch": "x64"
+  },
+  "samples": 7,
+  "scenarios": {
+    "simple-card": {
+      "domlens-auto": {
+        "median": 50.9,
+        "p10": 49.6,
+        "p90": 56.56
+      },
+      "domlens-svg": {
+        "median": 47.7,
+        "p10": 47.08,
+        "p90": 48.46
+      },
+      "domlens-canvas": {
+        "median": 59.6,
+        "p10": 57.66,
+        "p90": 64.98
+      },
+      "snapdom": {
+        "median": 73.9,
+        "p10": 72.24,
+        "p90": 79.84
+      },
+      "html-to-image": {
+        "median": 50.6,
+        "p10": 45.64,
+        "p90": 58.62
+      },
+      "modern-screenshot": {
+        "median": 58.3,
+        "p10": 54.88,
+        "p90": 60.08
+      },
+      "html2canvas-v1": {
+        "median": 107.2,
+        "p10": 104.56,
+        "p90": 115.12
+      }
+    },
+    "text-doc": {
+      "domlens-auto": {
+        "median": 179,
+        "p10": 174.08,
+        "p90": 185.98
+      },
+      "domlens-svg": {
+        "median": 184.7,
+        "p10": 170.8,
+        "p90": 195.84
+      },
+      "domlens-canvas": {
+        "median": 313.7,
+        "p10": 302.8,
+        "p90": 325.22
+      },
+      "snapdom": {
+        "median": 530.1,
+        "p10": 512.82,
+        "p90": 547.44
+      },
+      "html-to-image": {
+        "median": 790.7,
+        "p10": 776.08,
+        "p90": 806.68
+      },
+      "modern-screenshot": {
+        "median": 410.7,
+        "p10": 400.2,
+        "p90": 416.84
+      },
+      "html2canvas-v1": {
+        "median": 374.5,
+        "p10": 361.96,
+        "p90": 387.52
+      }
+    },
+    "image-heavy": {
+      "domlens-auto": {
+        "median": 213.3,
+        "p10": 193.48,
+        "p90": 232.1
+      },
+      "domlens-svg": {
+        "median": 183.5,
+        "p10": 180.1,
+        "p90": 188.44
+      },
+      "domlens-canvas": {
+        "median": 153.5,
+        "p10": 143.08,
+        "p90": 161.44
+      },
+      "snapdom": {
+        "median": 242.8,
+        "p10": 239.02,
+        "p90": 252.7
+      },
+      "html-to-image": {
+        "median": 268.8,
+        "p10": 264.46,
+        "p90": 271.56
+      },
+      "modern-screenshot": {
+        "median": 195.7,
+        "p10": 190.46,
+        "p90": 207.48
+      },
+      "html2canvas-v1": {
+        "median": 199.8,
+        "p10": 193.34,
+        "p90": 216.96
+      }
+    },
+    "deep-tree": {
+      "domlens-auto": {
+        "median": 3590.6,
+        "p10": 3487.92,
+        "p90": 3621.6
+      },
+      "domlens-svg": {
+        "median": 3513.5,
+        "p10": 3497.82,
+        "p90": 3544.7
+      },
+      "domlens-canvas": {
+        "median": 1034.2,
+        "p10": 1019.32,
+        "p90": 1060.38
+      },
+      "snapdom": {
+        "median": 6251.7,
+        "p10": 6077.3,
+        "p90": 6402.76
+      },
+      "html-to-image": {
+        "median": 7336.6,
+        "p10": 7298.52,
+        "p90": 7402.74
+      },
+      "modern-screenshot": {
+        "median": 5601.2,
+        "p10": 5532.34,
+        "p90": 5612.7
+      },
+      "html2canvas-v1": {
+        "median": 1140.9,
+        "p10": 1106.08,
+        "p90": 1190.9
+      }
+    }
+  }
+}
