@@ -20,8 +20,13 @@ Same call signature, same flat option names, same `Promise<HTMLCanvasElement>` r
 **Not a different rendering.** This package deliberately keeps html2canvas 1.4.1's behavior: it
 renders with the canvas engine by default and does not silently fall back to anything else, so
 your output stays pixel-comparable. What changes is that the code underneath is maintained, and
-faster — roughly 3.7x on small captures (19.6 ms vs 72.1 ms on a 20-node card), ~1.2–1.6x on
-larger ones.
+faster.
+
+How much faster depends on how you capture. On a **single** screenshot — the usual case for a
+widget or an export button — it is 1.8x on a small card (60 ms vs 107 ms), and 1.1–1.3x on larger
+pages. If you capture **repeatedly** in one page session the gap widens to ~3.7x on small captures
+(20 ms vs 69 ms), because more of the setup is amortized. Both are measured on the same desktop;
+see the [benchmarks](https://github.com/mrmoeboto/domlens#performance).
 
 ```diff
 -import html2canvas from 'html2canvas';

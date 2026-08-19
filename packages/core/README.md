@@ -143,11 +143,39 @@ That gap is the reason `'auto'` prefers the SVG engine.
 
 ## Performance
 
-Median of 15 runs after 3 warmups, Chromium 148, 1280x800 @1x, on one developer desktop. Timed
-region is capture through a readback that forces rasterization, so nothing is hidden behind
-laziness. **Lower is better; deltas under ~25% are noise on this hardware.**
+There are two honest ways to benchmark a DOM rasteriser, and they disagree about who wins.
+
+### The first screenshot
+
+This is the one most apps take: a bug-report widget, a "download as image" button, an export.
+One capture, on a page that just loaded, paying every first-time cost once — module init, the
+UA-default probe, resource fetches, font loads, cold JIT. Median of 7 samples, each in a fresh
+browser context so the HTTP, image and font caches start empty. **Lower is better; treat deltas
+under ~20% as noise, cold numbers are noisy.**
 
 | library | simple-card (20 nodes) | text-doc (451) | image-heavy (121) | deep-tree (3177) |
+| --- | --- | --- | --- | --- |
+| **domlens** (auto) | 51 ms | **179 ms** | 213 ms | 3591 ms |
+| domlens (`engine: 'svg'`) | **48 ms** | 185 ms | 184 ms | 3514 ms |
+| domlens (`engine: 'canvas'`) | 60 ms | 314 ms | **154 ms** | **1034 ms** |
+| snapdom | 74 ms | 530 ms | 243 ms | 6252 ms |
+| html-to-image | 51 ms | 791 ms | 269 ms | 7337 ms |
+| modern-screenshot | 58 ms | 411 ms | 196 ms | 5601 ms |
+| html2canvas 1.4.1 | 107 ms | 374 ms | 200 ms | 1141 ms |
+
+Add [`prewarm()`](#prewarmoptions--void) and the default path gets faster again — 51 ms → **33 ms**
+on simple-card, 179 → 162, 213 → 176 — because the UA-default probe stops happening while the
+user waits.
+
+On a single capture domlens is the fastest option in every column, and by a wide margin on
+text-heavy content. Note that deep-tree is won by the *canvas* engine, which `auto` does not
+currently choose; see the caveat below.
+
+### Repeated screenshots
+
+15 captures after 3 warmups, same page, same process — the right shape if you capture in a loop.
+
+| library | simple-card | text-doc | image-heavy | deep-tree |
 | --- | --- | --- | --- | --- |
 | **domlens** (auto) | 13 ms | 106 ms | **98 ms** | 3726 ms |
 | snapdom | **10 ms** | **84 ms** | 127 ms | 2913 ms |
@@ -155,22 +183,36 @@ laziness. **Lower is better; deltas under ~25% are noise on this hardware.**
 | modern-screenshot | 39 ms | 416 ms | 245 ms | 5480 ms |
 | html2canvas 1.4.1 | 69 ms | 300 ms | 168 ms | **969 ms** |
 
-Read that table honestly:
+snapdom leads two columns here and loses all four cold. Its advantage is cache reuse between
+captures, which a one-shot capture never gets to use. Neither table is wrong — they answer
+different questions, and which one applies to you depends on whether you capture once or often.
 
-- Against **html2canvas**, domlens is ~5x faster on small captures and ~3x on text-heavy ones.
-- Against **snapdom**, the fastest current library, domlens is ~1.3x ahead on image-heavy work
-  and ~1.2–1.4x behind elsewhere.
-- **On very deep trees the SVG engine is the slowest option here**, including slower than
-  html2canvas — the cost is browser-side rasterization of a very large output area, not
-  serialization. If you capture 3000-node subtrees, pass `engine: 'canvas'` and measure; it runs
-  that case in ~1058 ms.
+### The deep-tree caveat
 
-These are one machine's numbers, and the deep-tree gap in particular is hardware-sensitive: on a
-4-core CI runner the same suite puts the SVG engine at 1817 ms against html2canvas's 851 ms — the
-same ordering, but a 2.1x gap rather than a 3.8x one. The ordering has held on every machine
-measured; the magnitude has not. CI re-runs this nightly against a committed baseline
-(`tests/bench/results/ci-baseline.json`) so a real regression is caught even though the absolute
-numbers move.
+On very large, deeply nested subtrees the SVG engine is slow, and it is worth knowing why before
+you pick an engine. For a 3177-node, 26-megapixel capture, domlens spends **387 ms** doing its own
+work — less than html2canvas's entire run — and then **3077 ms** waiting for the browser to
+rasterize a 26-megapixel SVG image. It is not serialization, and no amount of tuning the
+serializer touches it.
+
+The canvas engine never builds that image; it paints boxes straight onto the canvas, and does the
+same capture in ~1034 ms — the fastest of any library measured. `auto` does not route there today,
+because the trade is real: the canvas engine scores 88% on the fidelity suite against the SVG
+engine's 99%. If you capture very large pages, benchmark both against your own content:
+
+```js
+await capture(element, {engine: 'canvas'});
+```
+
+### Notes on the numbers
+
+Both tables come from one developer desktop, and the deep-tree gap is hardware-sensitive: a 4-core
+CI runner puts the SVG engine at 1817 ms against html2canvas's 851 ms — same ordering, 2.1x rather
+than 3.8x. The ordering has held on every machine measured; the magnitude has not. CI re-runs the
+suite nightly against a baseline measured on comparable hardware, so a real regression is caught
+even though absolute numbers move.
+
+Reproduce either with `npm run bench:cold` or `npm run bench`.
 
 The SVG the serializer emits is also smaller than the obvious approach — 0.39x snapdom's bytes on
 a small card, 0.97x on a text document — because styles are diffed against the browser's own
