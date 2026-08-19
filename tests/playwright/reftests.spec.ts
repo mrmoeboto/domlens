@@ -378,6 +378,32 @@ for (const relPath of SCORECARD_ENGINE ? [] : reftests) {
         });
         // Make rendering deterministic: wait for web fonts before capturing.
         await page.evaluate(() => document.fonts.ready.then(() => undefined));
+        // ...and for any iframe to have finished loading. A same-origin iframe loads
+        // independently of its parent's load event, so `page.goto` resolving says nothing
+        // about the frame's document, and both engines capture whatever is in it at that
+        // instant — a frame that has not painted is captured as an empty box. iframe.html
+        // failed exactly this way on one slow CI run and passed on the next two, which is
+        // the shape of a race rather than a rendering difference.
+        //
+        // Bounded, because a frame that never loads should fail as a pixel diff with an
+        // image to look at, not as a test timeout with nothing.
+        await page.evaluate(async () => {
+            const settled = (frame: HTMLIFrameElement): Promise<void> => {
+                let doc: Document | null = null;
+                try {
+                    doc = frame.contentDocument;
+                } catch {
+                    return Promise.resolve(); // cross-origin: not ours to wait for
+                }
+                if (!doc || doc.readyState === 'complete') return Promise.resolve();
+                return new Promise<void>((resolve) => {
+                    frame.addEventListener('load', () => resolve(), {once: true});
+                });
+            };
+            const frames = Array.from(document.querySelectorAll('iframe'));
+            const deadline = new Promise<void>((resolve) => setTimeout(resolve, 5000));
+            await Promise.race([Promise.all(frames.map(settled)).then(() => undefined), deadline]);
+        });
 
         const dataUrl = await page.evaluate(async (proxy: string) => {
             /* eslint-disable @typescript-eslint/no-explicit-any */
