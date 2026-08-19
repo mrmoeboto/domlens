@@ -94,8 +94,15 @@ jobs:
       - name: Run reftests
         # PW_WEBKIT=1 makes the webkit project visible in playwright.config.ts
         # (it is hidden by default because webkit does not run on dev hosts).
+        # HOME is overridden because the job runs in a container as root while the
+        # runner points HOME at /github/home, which root does not own — and Firefox
+        # refuses to start at all in that state ("Firefox is unable to launch if the
+        # $HOME folder isn't owned by the current user"), failing every spec in 2-5ms
+        # with no rendering involved. Chromium and WebKit do not care, so this shows up
+        # as one browser inexplicably failing everything.
         env:
           PW_WEBKIT: '1'
+          HOME: /root
         run: npx playwright test --project=${{ matrix.browser }}
       - name: Upload test results
         if: failure()

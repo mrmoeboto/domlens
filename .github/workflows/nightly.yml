@@ -42,8 +42,11 @@ jobs:
       - name: Build
         run: npm run build
       - name: Run reftests
+        # HOME: see the note on the same step in ci.yml — Firefox will not launch in a
+        # container whose $HOME is not owned by the running user.
         env:
           PW_WEBKIT: '1'
+          HOME: /root
           ENGINE: ${{ matrix.engine == 'svg' && 'svg' || '' }}
         run: npx playwright test --project=${{ matrix.browser }}
       - name: Upload test results
