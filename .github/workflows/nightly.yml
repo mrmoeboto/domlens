@@ -68,12 +68,26 @@ jobs:
         run: npm ci
       - name: Build
         run: npm run build
-      - name: Preserve committed baseline
-        run: cp tests/bench/results/latest.json /tmp/bench-baseline.json
+      # The baseline is ci-baseline.json, NOT latest.json. latest.json is whatever the
+      # last person to run `npm run bench` produced on their own machine, and comparing a
+      # desktop's timings to a runner's is what made this job fail its first night: every
+      # domlens median got faster and the gate still reported three regressions. See the
+      # header of check-regression.ts. The copy is to /tmp because `npm run bench`
+      # overwrites the results directory.
+      - name: Preserve the CI baseline
+        run: cp tests/bench/results/ci-baseline.json /tmp/bench-baseline.json 2>/dev/null || true
       - name: Run benchmark suite
         run: npm run bench
       - name: Regression gate (>20% median slowdown vs baseline fails)
-        run: npx tsx tests/bench/check-regression.ts /tmp/bench-baseline.json tests/bench/results/latest.json
+        run: |
+          if [ ! -f /tmp/bench-baseline.json ]; then
+            echo "No tests/bench/results/ci-baseline.json committed yet, so there is nothing to"
+            echo "compare against and the gate is skipped rather than guessing."
+            echo "To enable it: download this run's nightly-bench-results artifact and commit its"
+            echo "latest.json as tests/bench/results/ci-baseline.json."
+            exit 0
+          fi
+          npx tsx tests/bench/check-regression.ts /tmp/bench-baseline.json tests/bench/results/latest.json
       - name: Upload bench results
         if: always()
         uses: actions/upload-artifact@v4

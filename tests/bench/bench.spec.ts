@@ -32,6 +32,7 @@
 import {test, expect} from '@playwright/test';
 import type {Page} from '@playwright/test';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import {buildVendor, vendorVersions} from './build-vendor';
 
@@ -216,6 +217,18 @@ test.describe('cross-library benchmark', () => {
         const report = {
             timestamp: new Date().toISOString(),
             browser: `chromium ${browserVersion}`,
+            // Which machine produced these numbers, because the regression gate cannot compare
+            // two runs from different hardware and has no other way to tell. `environment` is
+            // what it keys on: a developer's desktop and a CI runner are not comparable at a
+            // 20% threshold even after normalizing against a competitor, since libraries do not
+            // all scale with hardware at the same rate. The cpu fields are for reading a
+            // surprising result afterwards, not for gating — CI runners vary between runs.
+            host: {
+                environment: process.env.CI ? 'ci' : 'local',
+                cpu: os.cpus()[0]?.model ?? 'unknown',
+                cores: os.cpus().length,
+                arch: os.arch()
+            },
             viewport: '1280x800 @1x',
             methodology: {
                 warmupRuns: WARMUP_RUNS,
@@ -242,6 +255,7 @@ test.describe('cross-library benchmark', () => {
 interface Report {
     timestamp: string;
     browser: string;
+    host: {environment: string; cpu: string; cores: number; arch: string};
     viewport: string;
     methodology: {warmupRuns: number; timedRuns: number; statistic: string; note: string};
     libraries: Record<string, string>;
@@ -253,7 +267,7 @@ const renderMarkdown = (report: Report): string => {
     lines.push('# DOM-capture benchmark');
     lines.push('');
     lines.push(
-        `${report.timestamp} · ${report.browser} · ${report.viewport} · ` +
+        `${report.timestamp} · ${report.browser} · ${report.host.environment} (${report.host.cores}x ${report.host.cpu}) · ${report.viewport} · ` +
             `median of ${report.methodology.timedRuns} runs after ${report.methodology.warmupRuns} warmups ` +
             `(p10–p90 spread) · ${report.methodology.note}`
     );
