@@ -122,25 +122,25 @@ laziness. **Lower is better; deltas under ~25% are noise on this hardware.**
 
 | library | simple-card (20 nodes) | text-doc (451) | image-heavy (121) | deep-tree (3177) |
 | --- | --- | --- | --- | --- |
-| **domlens** (auto) | **14.5 ms** | **88.5 ms** | **87.3 ms** | 3863 ms |
-| snapdom | 11.7 ms | 71.7 ms | 108.6 ms | 2889 ms |
-| html-to-image | 21.5 ms | 567.7 ms | 160.4 ms | 12040 ms |
-| modern-screenshot | 35.7 ms | 331.2 ms | 215.6 ms | 5907 ms |
-| html2canvas 1.4.1 | 72.1 ms | 286.7 ms | 159.3 ms | **917 ms** |
+| **domlens** (auto) | 13 ms | 106 ms | **98 ms** | 3726 ms |
+| snapdom | **10 ms** | **84 ms** | 127 ms | 2913 ms |
+| html-to-image | 36 ms | 630 ms | 173 ms | 8022 ms |
+| modern-screenshot | 39 ms | 416 ms | 245 ms | 5480 ms |
+| html2canvas 1.4.1 | 69 ms | 300 ms | 168 ms | **969 ms** |
 
 Read that table honestly:
 
 - Against **html2canvas**, domlens is ~5x faster on small captures and ~3x on text-heavy ones.
-- Against **snapdom**, the fastest current library, domlens is ~1.2x ahead on image-heavy work
+- Against **snapdom**, the fastest current library, domlens is ~1.3x ahead on image-heavy work
   and ~1.2–1.4x behind elsewhere.
 - **On very deep trees the SVG engine is the slowest option here**, including slower than
   html2canvas — the cost is browser-side rasterization of a very large output area, not
   serialization. If you capture 3000-node subtrees, pass `engine: 'canvas'` and measure; it runs
-  that case in ~1082 ms.
+  that case in ~1058 ms.
 
 These are one machine's numbers, and the deep-tree gap in particular is hardware-sensitive: on a
 4-core CI runner the same suite puts the SVG engine at 1817 ms against html2canvas's 851 ms — the
-same ordering, but a 2.1x gap rather than a 4.3x one. The ordering has held on every machine
+same ordering, but a 2.1x gap rather than a 3.8x one. The ordering has held on every machine
 measured; the magnitude has not. CI re-runs this nightly against a committed baseline
 (`tests/bench/results/ci-baseline.json`) so a real regression is caught even though the absolute
 numbers move.

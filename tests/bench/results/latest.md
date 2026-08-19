@@ -1,20 +1,20 @@
 # DOM-capture benchmark
 
-2026-08-18T21:44:22.561Z · chromium 148.0.7778.96 · 1280x800 @1x · median of 15 runs after 3 warmups (p10–p90 spread) · shared machine; deltas under ~25% should be treated as noise
+2026-08-19T13:34:26.274Z · chromium 148.0.7778.96 · local (12x Intel(R) Core(TM) i7-8700K CPU @ 3.70GHz) · 1280x800 @1x · median of 15 runs after 3 warmups (p10–p90 spread) · shared machine; deltas under ~25% should be treated as noise
 
-Libraries: @domlens/core (domlens)@1.4.1, @zumer/snapdom@2.12.8, html-to-image@1.11.13, modern-screenshot@4.7.0, html2canvas-v1@1.4.1
+Libraries: domlens (domlens)@0.1.0, @zumer/snapdom@2.12.8, html-to-image@1.11.13, modern-screenshot@4.7.0, html2canvas-v1@1.4.1
 
 ## Capture to canvas, median ms (p10–p90)
 
 | library | simple-card | text-doc | image-heavy | deep-tree |
 |---|---|---|---|---|
-| domlens-svg | 12.8 (11.44–14.22) | 89.4 (85.1–98.92) | 93.8 (88.04–96.26) | 3926.1 (3742.34–4330.72) |
-| domlens-canvas | 19.6 (18.3–21.26) | 233.2 (223.62–270.04) | 102.2 (97.72–107.36) | 1082.2 (1025.14–1175.46) |
-| domlens-auto | 14.5 (11.58–15.56) | 88.5 (86.4–124.2) | 87.3 (85.2–94.2) | 3863.4 (3694.04–4109.84) |
-| snapdom | 11.7 (11–12.68) | 71.7 (66.38–74.08) | 108.6 (105.88–115.98) | 2888.6 (2722.78–3377.48) |
-| html-to-image | 21.5 (20.38–30.56) | 567.7 (558.88–690.18) | 160.4 (147.8–167.2) | 12039.7 (6995.8–15142.44) |
-| modern-screenshot | 35.7 (34.22–38.98) | 331.2 (326.2–384.92) | 215.6 (205.14–222.58) | 5906.6 (5450.82–10780.18) |
-| html2canvas-v1 | 72.1 (68.46–73.86) | 286.7 (278.88–302.66) | 159.3 (151.86–167.26) | 917.5 (894.08–948.6) |
+| domlens-svg | 14.7 (12.4–16) | 100.2 (93.44–110.2) | 104.9 (98.9–131.24) | 3666.2 (3579.66–3899.7) |
+| domlens-canvas | 21.9 (19.34–23.12) | 320.9 (289.8–344.08) | 133.5 (112.14–161.96) | 1058.5 (950.98–1132.12) |
+| domlens-auto | 12.7 (11.72–14.02) | 106.4 (94.96–117.06) | 98.2 (95.18–116.22) | 3725.7 (3568.82–3772.96) |
+| snapdom | 10.4 (9.4–11.8) | 83.7 (75.78–92.46) | 127 (121.4–146.1) | 2913.4 (2536.22–3054.54) |
+| html-to-image | 35.8 (24.4–47.32) | 630.4 (611.88–665.18) | 172.9 (164.52–185.9) | 8022.1 (7344.78–8263.4) |
+| modern-screenshot | 38.8 (35.52–54.42) | 416.2 (374.1–487.56) | 244.6 (225.84–275.78) | 5479.5 (5142.96–5721.06) |
+| html2canvas-v1 | 68.8 (67.82–71.4) | 300 (287.68–335.04) | 167.5 (159.6–200.12) | 968.8 (948.28–1002.46) |
 
 ## SVG output size, bytes (domlens default-style diffing vs snapdom)
 
