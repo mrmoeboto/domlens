@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Manual trigger. Also the escape hatch for the case that produced it: workflows
+  # added in a repository's very first push do not always fire on that push.
+  workflow_dispatch:
 
 jobs:
   build:
